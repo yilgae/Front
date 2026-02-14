@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors, FontSize, BorderRadius } from '../constants/theme';
+import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 24 * 2 - 16) / 2;
@@ -110,6 +111,7 @@ function ActivityItem({
 
 // --- Main Screen ---
 export default function HomeScreen() {
+  const { user } = useAuth();
   const now = new Date();
   const formattedDate = `${now.getMonth() + 1}월 ${now.getDate()}일 ${WEEKDAYS_KO[now.getDay()]}`;
 
@@ -143,7 +145,7 @@ export default function HomeScreen() {
           <Text style={styles.dateText}>{formattedDate}</Text>
           <Text style={styles.greetingMain}>
             안녕하세요,{'\n'}
-            <Text style={styles.greetingName}>홍길동님!</Text>
+            <Text style={styles.greetingName}>{user?.name ?? '사용자'}님!</Text>
           </Text>
         </View>
 

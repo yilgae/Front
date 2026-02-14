@@ -13,7 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { Colors, FontSize, BorderRadius } from '../constants/theme';
 
 export default function LoginScreen() {
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, signInAsGuest } = useAuth();
   const [loading, setLoading] = React.useState(false);
 
   const handleGoogleLogin = async () => {
@@ -58,6 +58,14 @@ export default function LoginScreen() {
                 <Text style={styles.googleButtonText}>Google로 계속하기</Text>
               </>
             )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.guestButton}
+            activeOpacity={0.8}
+            onPress={signInAsGuest}
+          >
+            <Text style={styles.guestButtonText}>게스트로 시작하기</Text>
           </TouchableOpacity>
 
           <Text style={styles.terms}>
@@ -133,6 +141,18 @@ const styles = StyleSheet.create({
     fontSize: FontSize.lg,
     fontWeight: '600',
     color: Colors.stone900,
+  },
+  guestButton: {
+    marginTop: 12,
+    paddingVertical: 14,
+    width: '100%',
+    alignItems: 'center',
+  },
+  guestButtonText: {
+    fontSize: FontSize.md,
+    fontWeight: '600',
+    color: Colors.stone500,
+    textDecorationLine: 'underline',
   },
   terms: {
     marginTop: 20,

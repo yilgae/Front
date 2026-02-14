@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors, FontSize } from '../constants/theme';
+import { useAuth } from '../context/AuthContext';
 
 type SettingRowProps = {
   icon: keyof typeof MaterialIcons.glyphMap;
@@ -37,6 +38,8 @@ function SettingRow({ icon, label, subtitle, showDivider }: SettingRowProps) {
 }
 
 export default function ProfileScreen() {
+  const { user, signOut } = useAuth();
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -50,14 +53,22 @@ export default function ProfileScreen() {
       >
         <TouchableOpacity style={styles.profileCard} activeOpacity={0.85}>
           <View style={styles.profileLeft}>
-            <Image
-              source={require('../../assets/favicon.png')}
-              style={styles.avatar}
-              resizeMode="cover"
-            />
+            {user?.picture ? (
+              <Image
+                source={{ uri: user.picture }}
+                style={styles.avatar}
+                resizeMode="cover"
+              />
+            ) : (
+              <Image
+                source={require('../../assets/favicon.png')}
+                style={styles.avatar}
+                resizeMode="cover"
+              />
+            )}
             <View>
-              <Text style={styles.profileName}>홍길동</Text>
-              <Text style={styles.profileEmail}>hong@example.com</Text>
+              <Text style={styles.profileName}>{user?.name ?? '사용자'}</Text>
+              <Text style={styles.profileEmail}>{user?.email ?? ''}</Text>
             </View>
           </View>
           <MaterialIcons name="chevron-right" size={22} color={Colors.stone300} />
@@ -102,7 +113,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.logoutButton} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.logoutButton} activeOpacity={0.8} onPress={signOut}>
           <Text style={styles.logoutText}>로그아웃</Text>
         </TouchableOpacity>
       </ScrollView>

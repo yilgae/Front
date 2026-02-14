@@ -18,6 +18,7 @@ type AuthContextType = {
   user: UserInfo | null;
   isLoading: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInAsGuest: () => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -25,6 +26,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: true,
   signInWithGoogle: async () => {},
+  signInAsGuest: async () => {},
   signOut: async () => {},
 });
 
@@ -95,13 +97,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const signInAsGuest = async () => {
+    const guestUser: UserInfo = {
+      id: 'guest',
+      name: '게스트',
+      email: 'guest@readgye.app',
+      picture: '',
+    };
+    setUser(guestUser);
+    await AsyncStorage.setItem('user', JSON.stringify(guestUser));
+  };
+
   const signOut = async () => {
     setUser(null);
     await AsyncStorage.removeItem('user');
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, isLoading, signInWithGoogle, signInAsGuest, signOut }}>
       {children}
     </AuthContext.Provider>
   );
