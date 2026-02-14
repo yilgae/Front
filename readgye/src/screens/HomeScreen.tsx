@@ -1,4 +1,4 @@
-﻿import React from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -10,13 +10,21 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { Colors, FontSize, BorderRadius } from '../constants/theme';
-import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL, useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 24 * 2 - 16) / 2;
 const WEEKDAYS_KO = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+
+type ApiDocument = {
+  id: string;
+  filename: string;
+  status: string;
+  created_at: string;
+  risk_count: number;
+};
 
 // --- Stat Card ---
 function StatCard({
@@ -33,9 +41,9 @@ function StatCard({
   value: number;
 }) {
   return (
-    <View style={[styles.statCard, { minWidth: CARD_WIDTH }]}>
+    <View style={[styles.statCard, { minWidth: CARD_WIDTH }]}> 
       <View style={styles.statHeader}>
-        <View style={[styles.statIconWrap, { backgroundColor: iconBg }]}>
+        <View style={[styles.statIconWrap, { backgroundColor: iconBg }]}> 
           <MaterialIcons name={icon} size={16} color={iconColor} />
         </View>
         <Text style={styles.statLabel}>{label}</Text>
@@ -47,6 +55,16 @@ function StatCard({
 
 // --- Activity Item ---
 type RiskStatus = 'analyzing' | 'danger' | 'safe';
+type RecentActivity = {
+  id: string;
+  icon: keyof typeof MaterialIcons.glyphMap;
+  iconBg: string;
+  iconColor: string;
+  title: string;
+  date: string;
+  status: RiskStatus;
+  statusLabel: string;
+};
 
 function ActivityItem({
   icon,
@@ -56,7 +74,6 @@ function ActivityItem({
   date,
   status,
   statusLabel,
-  animateIcon,
 }: {
   icon: keyof typeof MaterialIcons.glyphMap;
   iconBg: string;
@@ -65,7 +82,6 @@ function ActivityItem({
   date: string;
   status: RiskStatus;
   statusLabel: string;
-  animateIcon?: boolean;
 }) {
   const badgeStyle =
     status === 'danger'
@@ -83,7 +99,7 @@ function ActivityItem({
   return (
     <TouchableOpacity style={styles.activityCard} activeOpacity={0.7}>
       <View style={styles.activityLeft}>
-        <View style={[styles.activityIcon, { backgroundColor: iconBg }]}>
+        <View style={[styles.activityIcon, { backgroundColor: iconBg }]}> 
           <MaterialIcons name={icon} size={20} color={iconColor} />
         </View>
         <View style={styles.activityInfo}>
@@ -112,10 +128,96 @@ function ActivityItem({
 
 // --- Main Screen ---
 export default function HomeScreen() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const navigation = useNavigation<any>();
+  const isFocused = useIsFocused();
   const now = new Date();
   const formattedDate = `${now.getMonth() + 1}월 ${now.getDate()}일 ${WEEKDAYS_KO[now.getDay()]}`;
+
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+
+  const formatDate = useCallback((dateString: string) => {
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) {
+      return '-';
+    }
+    return `${date.getMonth() + 1}월 ${date.getDate()}일`;
+  }, []);
+
+  const mapActivity = useCallback(
+    (doc: ApiDocument): RecentActivity => {
+      if (doc.status !== 'done') {
+        return {
+          id: doc.id,
+          icon: 'sync',
+          iconBg: Colors.yellow50,
+          iconColor: Colors.primary,
+          title: doc.filename,
+          date: formatDate(doc.created_at),
+          status: 'analyzing',
+          statusLabel: '분석 중...',
+        };
+      }
+      if (doc.risk_count > 0) {
+        return {
+          id: doc.id,
+          icon: 'gavel',
+          iconBg: Colors.red50,
+          iconColor: Colors.red500,
+          title: doc.filename,
+          date: formatDate(doc.created_at),
+          status: 'danger',
+          statusLabel: `${doc.risk_count}건 위험 발견`,
+        };
+      }
+      return {
+        id: doc.id,
+        icon: 'check-circle-outline',
+        iconBg: Colors.green50,
+        iconColor: Colors.green500,
+        title: doc.filename,
+        date: formatDate(doc.created_at),
+        status: 'safe',
+        statusLabel: '안전',
+      };
+    },
+    [formatDate]
+  );
+
+  const loadRecentActivities = useCallback(async () => {
+    if (!token) {
+      setRecentActivities([]);
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/analyze`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        setRecentActivities([]);
+        return;
+      }
+      const docs: ApiDocument[] = await res.json();
+      setRecentActivities(docs.slice(0, 3).map(mapActivity));
+    } catch {
+      setRecentActivities([]);
+    }
+  }, [mapActivity, token]);
+
+  useEffect(() => {
+    if (isFocused) {
+      loadRecentActivities();
+    }
+  }, [isFocused, loadRecentActivities]);
+
+  const safeCount = useMemo(
+    () => recentActivities.filter((x) => x.status === 'safe').length,
+    [recentActivities]
+  );
+  const dangerCount = useMemo(
+    () => recentActivities.filter((x) => x.status === 'danger').length,
+    [recentActivities]
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -124,52 +226,45 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Image
               source={require('../../assets/favicon.png')}
               style={styles.logoImage}
-              resizeMode='contain'
+              resizeMode="contain"
             />
           </View>
           <TouchableOpacity style={styles.notifBtn}>
-            <MaterialIcons
-              name="notifications"
-              size={24}
-              color={Colors.stone600}
-            />
+            <MaterialIcons name="notifications" size={24} color={Colors.stone600} />
             <View style={styles.notifDot} />
           </TouchableOpacity>
         </View>
-        {/* Greeting */}
+
         <View style={styles.greeting}>
           <Text style={styles.dateText}>{formattedDate}</Text>
           <Text style={styles.greetingMain}>
-            안녕하세요,{'\n'}
+            안녕하세요,{"\n"}
             <Text style={styles.greetingName}>{user?.name ?? '사용자'}님!</Text>
           </Text>
         </View>
 
-        {/* Stat Cards */}
         <View style={styles.statRow}>
           <StatCard
             icon="verified-user"
             iconBg={Colors.green100}
             iconColor={Colors.green600}
             label="안전한 계약"
-            value={12}
+            value={safeCount}
           />
           <StatCard
             icon="warning"
             iconBg={Colors.red100}
             iconColor={Colors.red600}
             label="위험 요소 발견"
-            value={3}
+            value={dangerCount}
           />
         </View>
 
-        {/* CTA Button */}
         <TouchableOpacity
           style={styles.ctaButton}
           activeOpacity={0.85}
@@ -182,63 +277,42 @@ export default function HomeScreen() {
           <Text style={styles.ctaDesc}>
             PDF나 이미지를 업로드하여 독소 조항을 즉시 확인해보세요.
           </Text>
-          {/* Decorative background icon */}
           <View style={styles.ctaBgIcon}>
-            <MaterialIcons
-              name="description"
-              size={160}
-              color="rgba(255,255,255,0.1)"
-            />
+            <MaterialIcons name="description" size={160} color="rgba(255,255,255,0.1)" />
           </View>
         </TouchableOpacity>
 
-        {/* Recent Activity */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>최근 활동</Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Archive')}>
             <Text style={styles.seeAll}>전체 보기</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.activityList}>
-          <ActivityItem
-            icon="sync"
-            iconBg={Colors.yellow50}
-            iconColor={Colors.primary}
-            title="용역_계약서_초안.pdf"
-            date="방금 전"
-            status="analyzing"
-            statusLabel="분석 중..."
-            animateIcon
-          />
-          <ActivityItem
-            icon="gavel"
-            iconBg={Colors.red50}
-            iconColor={Colors.red500}
-            title="비밀유지협약서_v2.docx"
-            date="어제"
-            status="danger"
-            statusLabel="2건 위험 발견"
-          />
-          <ActivityItem
-            icon="check-circle-outline"
-            iconBg={Colors.green50}
-            iconColor={Colors.green500}
-            title="디자인_용역_계약서.pdf"
-            date="10월 22일"
-            status="safe"
-            statusLabel="안전"
-          />
+          {recentActivities.length === 0 ? (
+            <View style={styles.emptyActivityCard}>
+              <Text style={styles.emptyActivityText}>최근 분석 활동이 없습니다.</Text>
+            </View>
+          ) : (
+            recentActivities.map((item) => (
+              <ActivityItem
+                key={item.id}
+                icon={item.icon}
+                iconBg={item.iconBg}
+                iconColor={item.iconColor}
+                title={item.title}
+                date={item.date}
+                status={item.status}
+                statusLabel={item.statusLabel}
+              />
+            ))
+          )}
         </View>
 
-        {/* Tip Card */}
         <View style={styles.tipCard}>
           <View style={styles.tipIcon}>
-            <MaterialIcons
-              name="tips-and-updates"
-              size={22}
-              color={Colors.primary}
-            />
+            <MaterialIcons name="tips-and-updates" size={22} color={Colors.primary} />
           </View>
           <View style={styles.tipContent}>
             <Text style={styles.tipTitle}>계약 꿀팁</Text>
@@ -253,14 +327,11 @@ export default function HomeScreen() {
   );
 }
 
-// --- Styles ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.backgroundLight,
   },
-
-  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -293,8 +364,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.backgroundLight,
   },
-
-  // Scroll
   scrollView: {
     flex: 1,
   },
@@ -302,8 +371,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 32,
   },
-
-  // Greeting
   greeting: {
     marginTop: 8,
     marginBottom: 28,
@@ -323,8 +390,6 @@ const styles = StyleSheet.create({
   greetingName: {
     color: Colors.primaryDark,
   },
-
-  // Stat Cards
   statRow: {
     flexDirection: 'row',
     gap: 16,
@@ -361,8 +426,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.stone900,
   },
-
-  // CTA
   ctaButton: {
     borderRadius: BorderRadius.xl,
     padding: 24,
@@ -399,8 +462,6 @@ const styles = StyleSheet.create({
     paddingRight: 48,
     lineHeight: 18,
   },
-
-  // Section Header
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -417,11 +478,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.primaryDark,
   },
-
-  // Activity
   activityList: {
     gap: 12,
     marginBottom: 24,
+  },
+  emptyActivityCard: {
+    backgroundColor: Colors.white,
+    padding: 16,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.stone100,
+  },
+  emptyActivityText: {
+    fontSize: FontSize.sm,
+    color: Colors.stone500,
+    textAlign: 'center',
   },
   activityCard: {
     backgroundColor: Colors.white,
@@ -475,8 +546,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: Colors.primaryDark,
   },
-
-  // Badges
   badgeDanger: {
     backgroundColor: Colors.red100,
     paddingHorizontal: 8,
@@ -501,8 +570,6 @@ const styles = StyleSheet.create({
   },
   badgeAnalyzing: {},
   badgeAnalyzingText: {},
-
-  // Tip
   tipCard: {
     backgroundColor: Colors.secondary,
     borderRadius: BorderRadius.xl,
@@ -536,6 +603,3 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 });
-
-
-

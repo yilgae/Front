@@ -1,28 +1,253 @@
-import React from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   TextInput,
   Image,
+  FlatList,
+  ActivityIndicator,
+  Platform,
+  KeyboardAvoidingView,
+  Clipboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors, FontSize } from '../constants/theme';
+import { useAuth, API_BASE_URL } from '../context/AuthContext';
 
+// ─── 타입 정의 ───
+type Message = {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: string;
+};
+
+// ─── 추천 질문 목록 ───
+const SUGGESTED_QUESTIONS = [
+  '위험한 조항을 요약해줘',
+  '계약서 전체를 쉽게 설명해줘',
+  '수정이 필요한 부분이 있어?',
+  '이 계약서에서 주의할 점은?',
+];
+
+// ─── 시간 포맷 ───
+function formatTime(iso: string): string {
+  const d = new Date(iso);
+  const h = d.getHours();
+  const m = d.getMinutes().toString().padStart(2, '0');
+  return `${h >= 12 ? '오후' : '오전'} ${h > 12 ? h - 12 : h || 12}:${m}`;
+}
+
+// ─── 메인 컴포넌트 ───
 export default function CounselingScreen() {
+  const { token } = useAuth();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputText, setInputText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const flatListRef = useRef<FlatList>(null);
+
+  // ─── 메시지 전송 ───
+  const sendMessage = useCallback(
+    async (text?: string) => {
+      const messageText = (text || inputText).trim();
+      if (!messageText || isLoading) return;
+
+      setError(null);
+      setInputText('');
+
+      // 사용자 메시지 즉시 표시
+      const userMsg: Message = {
+        id: `user-${Date.now()}`,
+        role: 'user',
+        content: messageText,
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, userMsg]);
+      setIsLoading(true);
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            message: messageText,
+            session_id: sessionId,
+          }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => null);
+          throw new Error(errData?.detail || `서버 오류 (${res.status})`);
+        }
+
+        const data = await res.json();
+        setSessionId(data.session_id);
+
+        const aiMsg: Message = {
+          id: data.message.id,
+          role: 'assistant',
+          content: data.message.content,
+          created_at: data.message.created_at,
+        };
+        setMessages((prev) => [...prev, aiMsg]);
+      } catch (e: any) {
+        setError(e.message || '응답을 받지 못했습니다.');
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `err-${Date.now()}`,
+            role: 'assistant',
+            content: '죄송합니다, 응답을 받지 못했습니다. 다시 시도해주세요.',
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [inputText, isLoading, sessionId, token],
+  );
+
+  // ─── 새 대화 시작 ───
+  const startNewChat = useCallback(() => {
+    setMessages([]);
+    setSessionId(null);
+    setError(null);
+    setInputText('');
+  }, []);
+
+  // ─── 클립보드 복사 ───
+  const copyToClipboard = useCallback((text: string) => {
+    Clipboard.setString(text);
+    if (Platform.OS === 'web') {
+      window.alert('복사되었습니다!');
+    }
+  }, []);
+
+  // ─── AI 메시지 렌더링 ───
+  const renderAIMessage = useCallback(
+    (item: Message) => (
+      <View style={styles.aiRow}>
+        <View style={styles.avatarWrap}>
+          <Image
+            source={require('../../assets/favicon.png')}
+            style={styles.avatar}
+            resizeMode="cover"
+          />
+        </View>
+        <View style={styles.aiMessageArea}>
+          <Text style={styles.sender}>읽계 AI</Text>
+          <View style={styles.aiBubble}>
+            <Text style={styles.aiText}>{item.content}</Text>
+          </View>
+          <View style={styles.messageActions}>
+            <Text style={styles.messageTime}>{formatTime(item.created_at)}</Text>
+            <TouchableOpacity
+              onPress={() => copyToClipboard(item.content)}
+              style={styles.copySmallBtn}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="content-copy" size={12} color={Colors.stone400} />
+              <Text style={styles.copySmallText}>복사</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    ),
+    [copyToClipboard],
+  );
+
+  // ─── 사용자 메시지 렌더링 ───
+  const renderUserMessage = useCallback((item: Message) => (
+    <View style={styles.userRow}>
+      <View style={styles.userMessageArea}>
+        <View style={styles.userBubble}>
+          <Text style={styles.userText}>{item.content}</Text>
+        </View>
+        <Text style={styles.userTime}>{formatTime(item.created_at)}</Text>
+      </View>
+    </View>
+  ), []);
+
+  // ─── 메시지 아이템 렌더링 ───
+  const renderItem = useCallback(
+    ({ item }: { item: Message }) => {
+      if (item.role === 'user') return renderUserMessage(item);
+      return renderAIMessage(item);
+    },
+    [renderAIMessage, renderUserMessage],
+  );
+
+  // ─── 빈 상태 (추천 질문) ───
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <View style={styles.emptyIconWrap}>
+        <MaterialIcons name="chat-bubble-outline" size={48} color={Colors.stone300} />
+      </View>
+      <Text style={styles.emptyTitle}>AI 법률 상담</Text>
+      <Text style={styles.emptyDesc}>
+        업로드한 계약서를 바탕으로{'\n'}궁금한 점을 물어보세요
+      </Text>
+      <View style={styles.suggestionsWrap}>
+        {SUGGESTED_QUESTIONS.map((q, i) => (
+          <TouchableOpacity
+            key={i}
+            style={styles.suggestionChip}
+            activeOpacity={0.7}
+            onPress={() => sendMessage(q)}
+          >
+            <MaterialIcons name="lightbulb-outline" size={14} color="#0f49bd" />
+            <Text style={styles.suggestionChipText}>{q}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+
+  // ─── 타이핑 인디케이터 ───
+  const renderTypingIndicator = () => (
+    <View style={styles.aiRow}>
+      <View style={styles.avatarWrap}>
+        <Image
+          source={require('../../assets/favicon.png')}
+          style={styles.avatar}
+          resizeMode="cover"
+        />
+      </View>
+      <View style={styles.aiMessageArea}>
+        <Text style={styles.sender}>읽계 AI</Text>
+        <View style={styles.typingBubble}>
+          <ActivityIndicator size="small" color="#0f49bd" />
+          <Text style={styles.typingText}>답변을 생성하고 있어요...</Text>
+        </View>
+      </View>
+    </View>
+  );
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* ─── 헤더 ─── */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerButton} activeOpacity={0.8}>
-          <MaterialIcons name="chevron-left" size={30} color={Colors.stone600} />
+        <TouchableOpacity
+          style={styles.headerButton}
+          activeOpacity={0.8}
+          onPress={startNewChat}
+        >
+          <MaterialIcons name="add" size={24} color={Colors.stone600} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>AI 법률 상담</Text>
         <View style={styles.headerSpacer} />
       </View>
 
+      {/* ─── 면책 안내 ─── */}
       <View style={styles.disclaimerWrap}>
         <MaterialIcons name="info-outline" size={16} color="#0f49bd" />
         <Text style={styles.disclaimerText}>
@@ -31,119 +256,80 @@ export default function CounselingScreen() {
         </Text>
       </View>
 
-      <ScrollView
-        style={styles.chatScroll}
-        contentContainerStyle={styles.chatContent}
-        showsVerticalScrollIndicator={false}
+      {/* ─── 에러 배너 ─── */}
+      {error && (
+        <View style={styles.errorBanner}>
+          <MaterialIcons name="error-outline" size={14} color={Colors.red600} />
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+
+      {/* ─── 채팅 영역 ─── */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={0}
       >
-        <View style={styles.timestampWrap}>
-          <Text style={styles.timestamp}>오늘 오후 2:30</Text>
-        </View>
-
-        <View style={styles.aiRow}>
-          <View style={styles.avatarWrap}>
-            <Image
-              source={require('../../assets/favicon.png')}
-              style={styles.avatar}
-              resizeMode="cover"
-            />
-          </View>
-          <View style={styles.aiMessageArea}>
-            <Text style={styles.sender}>읽계 AI</Text>
-            <View style={styles.aiBubble}>
-              <Text style={styles.aiText}>
-                안녕하세요. <Text style={styles.primaryStrong}>프리랜서 용역 계약서</Text>를 분석해드릴게요.
-              </Text>
-              <Text style={[styles.aiText, styles.mt8]}>
-                업로드하신 계약서의 <Text style={styles.strong}>제 3조 &apos;지적재산권 귀속&apos;</Text> 조항을
-                중점적으로 검토했습니다. 해당 조항의 내용이 궁금하신가요?
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.userRow}>
-          <View style={styles.userMessageArea}>
-            <View style={styles.userBubble}>
-              <Text style={styles.userText}>
-                네, 이 조항이 저한테 불리한가요? 혹시 수정해야 할 부분이 있을까요?
-              </Text>
-            </View>
-            <Text style={styles.userTime}>오후 2:32</Text>
-          </View>
-        </View>
-
-        <View style={styles.aiRow}>
-          <View style={styles.avatarWrap}>
-            <Image
-              source={require('../../assets/favicon.png')}
-              style={styles.avatar}
-              resizeMode="cover"
-            />
-          </View>
-          <View style={styles.aiMessageArea}>
-            <Text style={styles.sender}>읽계 AI</Text>
-            <View style={styles.aiBubbleLarge}>
-              <Text style={styles.aiText}>
-                네, 현재 <Text style={styles.strong}>제 3조</Text>는 프리랜서님께 다소
-                <Text style={styles.dangerStrong}> 불리한 조항</Text>으로 보입니다.
-              </Text>
-
-              <View style={styles.quoteBox}>
-                <Text style={styles.quoteText}>
-                  &quot;모든 작업물의 저작권은 용역비 지급과 동시에 발주처에 귀속된다.&quot;
-                </Text>
-              </View>
-
-              <Text style={styles.aiText}>
-                일반적으로 포트폴리오 사용권이나 2차 저작물 작성권은 작업자에게 남겨두는 경우가 많습니다.
-                다음과 같이 수정을 제안해 보세요:
-              </Text>
-
-              <View style={styles.suggestionBox}>
-                <View style={styles.suggestionHeader}>
-                  <MaterialIcons name="edit-note" size={16} color="#0f49bd" />
-                  <Text style={styles.suggestionTitle}>수정 제안</Text>
-                </View>
-                <Text style={styles.suggestionText}>
-                  &quot;저작권은 양도하되, 작업자는 해당 결과물을 포트폴리오 목적으로 사용할 수 있다.&quot;
-                </Text>
-              </View>
-
-              <TouchableOpacity style={styles.copyButton} activeOpacity={0.85}>
-                <Text style={styles.copyButtonText}>수정안 복사하기</Text>
-                <MaterialIcons name="content-copy" size={16} color="#0f49bd" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </ScrollView>
-
-      <View style={styles.inputBar}>
-        <TouchableOpacity style={styles.inputIconBtn} activeOpacity={0.8}>
-          <MaterialIcons name="add-circle-outline" size={24} color={Colors.stone400} />
-        </TouchableOpacity>
-        <View style={styles.inputWrap}>
-          <TextInput
-            placeholder="계약서에 대해 궁금한 점을 물어보세요"
-            placeholderTextColor={Colors.stone400}
-            style={styles.input}
-            multiline
+        {messages.length === 0 ? (
+          renderEmptyState()
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.chatContent}
+            showsVerticalScrollIndicator={false}
+            onContentSizeChange={() =>
+              flatListRef.current?.scrollToEnd({ animated: true })
+            }
+            ListFooterComponent={isLoading ? renderTypingIndicator : null}
           />
+        )}
+
+        {/* ─── 입력 바 ─── */}
+        <View style={styles.inputBar}>
+          <View style={styles.inputWrap}>
+            <TextInput
+              value={inputText}
+              onChangeText={setInputText}
+              placeholder="계약서에 대해 궁금한 점을 물어보세요"
+              placeholderTextColor={Colors.stone400}
+              style={styles.input}
+              multiline
+              editable={!isLoading}
+              onSubmitEditing={() => sendMessage()}
+              blurOnSubmit={false}
+            />
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.sendButton,
+              (!inputText.trim() || isLoading) && styles.sendButtonDisabled,
+            ]}
+            activeOpacity={0.85}
+            onPress={() => sendMessage()}
+            disabled={!inputText.trim() || isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color={Colors.white} />
+            ) : (
+              <MaterialIcons name="send" size={20} color={Colors.white} />
+            )}
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.sendButton} activeOpacity={0.85}>
-          <MaterialIcons name="send" size={20} color={Colors.white} />
-        </TouchableOpacity>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
+// ─── 스타일 ───
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.backgroundLight,
   },
+  // 헤더
   header: {
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -166,6 +352,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
   },
+  // 면책
   disclaimerWrap: {
     marginHorizontal: 20,
     marginBottom: 8,
@@ -182,27 +369,31 @@ const styles = StyleSheet.create({
     color: Colors.stone500,
     lineHeight: 18,
   },
-  chatScroll: {
-    flex: 1,
+  // 에러
+  errorBanner: {
+    marginHorizontal: 20,
+    marginBottom: 8,
+    backgroundColor: Colors.red50,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
+  errorText: {
+    flex: 1,
+    fontSize: 12,
+    color: Colors.red600,
+  },
+  // 채팅
   chatContent: {
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 14,
     gap: 16,
   },
-  timestampWrap: {
-    alignItems: 'center',
-  },
-  timestamp: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.stone400,
-    backgroundColor: Colors.stone100,
-    borderRadius: 9999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
+  // AI 메시지
   aiRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -239,35 +430,31 @@ const styles = StyleSheet.create({
     borderColor: Colors.stone100,
     padding: 14,
   },
-  aiBubbleLarge: {
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    borderTopLeftRadius: 4,
-    borderWidth: 1,
-    borderColor: Colors.stone100,
-    padding: 14,
-    gap: 10,
-  },
   aiText: {
     fontSize: 15,
     color: Colors.stone600,
     lineHeight: 22,
   },
-  strong: {
-    fontWeight: '700',
-    color: Colors.stone900,
+  messageActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginLeft: 2,
   },
-  primaryStrong: {
-    color: '#0f49bd',
-    fontWeight: '700',
+  messageTime: {
+    fontSize: 10,
+    color: Colors.stone400,
   },
-  dangerStrong: {
-    color: Colors.red500,
-    fontWeight: '700',
+  copySmallBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
   },
-  mt8: {
-    marginTop: 8,
+  copySmallText: {
+    fontSize: 10,
+    color: Colors.stone400,
   },
+  // 사용자 메시지
   userRow: {
     alignItems: 'flex-end',
   },
@@ -294,58 +481,73 @@ const styles = StyleSheet.create({
     color: Colors.stone400,
     marginRight: 2,
   },
-  quoteBox: {
-    borderLeftWidth: 2,
-    borderLeftColor: '#8FB0F5',
-    paddingLeft: 10,
-    paddingVertical: 2,
-  },
-  quoteText: {
-    fontSize: 13,
-    color: Colors.stone500,
-    fontStyle: 'italic',
-    lineHeight: 20,
-  },
-  suggestionBox: {
-    backgroundColor: '#EBF1FF',
-    borderRadius: 10,
-    padding: 10,
-    gap: 6,
-  },
-  suggestionHeader: {
+  // 타이핑 인디케이터
+  typingBubble: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    borderTopLeftRadius: 4,
+    borderWidth: 1,
+    borderColor: Colors.stone100,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 8,
   },
-  suggestionTitle: {
-    color: '#0f49bd',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  suggestionText: {
-    color: Colors.stone900,
+  typingText: {
     fontSize: 13,
-    fontWeight: '600',
-    lineHeight: 20,
+    color: Colors.stone400,
   },
-  copyButton: {
-    marginTop: 2,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#c8d8fb',
-    backgroundColor: '#F4F8FF',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    flexDirection: 'row',
+  // 빈 상태
+  emptyContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 6,
+    paddingHorizontal: 32,
+    paddingBottom: 40,
   },
-  copyButtonText: {
-    color: '#0f49bd',
-    fontSize: 13,
+  emptyIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.stone100,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 20,
     fontWeight: '700',
+    color: Colors.stone900,
+    marginBottom: 8,
   },
+  emptyDesc: {
+    fontSize: 14,
+    color: Colors.stone500,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  suggestionsWrap: {
+    width: '100%',
+    gap: 8,
+  },
+  suggestionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F4F8FF',
+    borderWidth: 1,
+    borderColor: '#c8d8fb',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  suggestionChipText: {
+    fontSize: 14,
+    color: '#0f49bd',
+    fontWeight: '600',
+  },
+  // 입력 바
   inputBar: {
     paddingHorizontal: 12,
     paddingTop: 8,
@@ -356,13 +558,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 8,
-  },
-  inputIconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   inputWrap: {
     flex: 1,
@@ -389,5 +584,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 1,
+  },
+  sendButtonDisabled: {
+    backgroundColor: '#a0b8e8',
   },
 });

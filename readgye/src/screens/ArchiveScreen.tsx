@@ -1,52 +1,65 @@
-﻿import React, { useMemo, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
   ScrollView,
-  TouchableOpacity,
+  StyleSheet,
+  Text,
   TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
 import { Colors, FontSize } from '../constants/theme';
+import { API_BASE_URL, useAuth } from '../context/AuthContext';
 
 type DocumentStatus = 'safe' | 'danger' | 'review';
 type FilterKey = 'all' | 'done' | 'review';
 
-type DocumentItem = {
+type ArchiveStackParamList = {
+  ArchiveMain: undefined;
+  ArchiveDetail: { documentId: string; title: string };
+};
+
+type ApiDocument = {
+  id: string;
+  filename: string;
+  status: string;
+  created_at: string;
+  risk_count: number;
+};
+
+type ArchiveItem = {
   id: string;
   title: string;
   date: string;
   status: DocumentStatus;
+  riskCount: number;
 };
 
-const DOCUMENTS: DocumentItem[] = [
-  {
-    id: '1',
-    title: '프리랜서 용역 계약서 (2023.11.01)',
-    date: '2023.11.01',
-    status: 'safe',
-  },
-  {
-    id: '2',
-    title: '임대차 계약서 (2023.10.15)',
-    date: '2023.10.15',
-    status: 'danger',
-  },
-  {
-    id: '3',
-    title: '비밀유지 계약서 (2023.10.01)',
-    date: '2023.10.01',
-    status: 'safe',
-  },
-  {
-    id: '4',
-    title: '물품 공급 계약서 (2023.09.20)',
-    date: '2023.09.20',
-    status: 'review',
-  },
-];
+function formatDate(dateString: string) {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) {
+    return '-';
+  }
+  return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(
+    date.getDate()
+  ).padStart(2, '0')}`;
+}
+
+function mapStatus(item: ApiDocument): DocumentStatus {
+  if (item.status !== 'done') {
+    return 'review';
+  }
+  if (item.risk_count > 0) {
+    return 'danger';
+  }
+  return 'safe';
+}
 
 function StatusBadge({ status }: { status: DocumentStatus }) {
   if (status === 'safe') {
@@ -73,11 +86,64 @@ function StatusBadge({ status }: { status: DocumentStatus }) {
 }
 
 export default function ArchiveScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<ArchiveStackParamList, 'ArchiveMain'>>();
+  const { token } = useAuth();
+  const isFocused = useIsFocused();
+
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<FilterKey>('all');
+  const [documents, setDocuments] = useState<ArchiveItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchDocuments = useCallback(async () => {
+    if (!token) {
+      setDocuments([]);
+      setError('로그인 후 보관함을 확인할 수 있습니다.');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/analyze`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.detail || '보관함 데이터를 불러오지 못했습니다.');
+      }
+
+      const data: ApiDocument[] = await res.json();
+      const mapped: ArchiveItem[] = data.map((item) => ({
+        id: item.id,
+        title: item.filename,
+        date: formatDate(item.created_at),
+        status: mapStatus(item),
+        riskCount: item.risk_count,
+      }));
+      setDocuments(mapped);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : '보관함 데이터를 불러오지 못했습니다.';
+      setError(message);
+      setDocuments([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (isFocused) {
+      fetchDocuments();
+    }
+  }, [fetchDocuments, isFocused]);
 
   const filteredDocuments = useMemo(() => {
-    const searched = DOCUMENTS.filter((doc) =>
+    const searched = documents.filter((doc) =>
       doc.title.toLowerCase().includes(query.trim().toLowerCase())
     );
 
@@ -90,13 +156,13 @@ export default function ArchiveScreen() {
     }
 
     return searched;
-  }, [filter, query]);
+  }, [documents, filter, query]);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.iconButton} activeOpacity={0.8}>
-          <MaterialIcons name="search" size={24} color={Colors.primaryDark} />
+        <TouchableOpacity style={styles.iconButton} activeOpacity={0.8} onPress={fetchDocuments}>
+          <MaterialIcons name="refresh" size={24} color={Colors.primaryDark} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>내 법률 보관함</Text>
         <TouchableOpacity style={styles.iconButton} activeOpacity={0.8}>
@@ -108,6 +174,7 @@ export default function ArchiveScreen() {
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={isLoading} onRefresh={fetchDocuments} />}
       >
         <View style={styles.searchWrap}>
           <MaterialIcons name="search" size={20} color={Colors.stone400} style={styles.searchIcon} />
@@ -133,47 +200,59 @@ export default function ArchiveScreen() {
             activeOpacity={0.8}
             onPress={() => setFilter('done')}
           >
-            <Text style={[styles.filterText, filter === 'done' && styles.filterTextActive]}>
-              분석 완료
-            </Text>
+            <Text style={[styles.filterText, filter === 'done' && styles.filterTextActive]}>분석 완료</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.filterTab, styles.filterTabDivider, filter === 'review' && styles.filterTabActive]}
             activeOpacity={0.8}
             onPress={() => setFilter('review')}
           >
-            <Text style={[styles.filterText, filter === 'review' && styles.filterTextActive]}>
-              검토 필요
-            </Text>
+            <Text style={[styles.filterText, filter === 'review' && styles.filterTextActive]}>검토 필요</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.list}>
-          {filteredDocuments.map((doc) => (
-            <View key={doc.id} style={styles.card}>
-              <View style={styles.cardTop}>
-                <Text style={styles.cardTitle}>{doc.title}</Text>
-                <StatusBadge status={doc.status} />
-              </View>
-
-              <View style={styles.cardBottom}>
-                <View style={styles.dateWrap}>
-                  <MaterialIcons name="description" size={14} color={Colors.stone400} />
-                  <Text style={styles.dateText}>{doc.date}</Text>
+        {isLoading && documents.length === 0 ? (
+          <View style={styles.emptyWrap}>
+            <ActivityIndicator color={Colors.primaryDark} />
+            <Text style={styles.emptyText}>보관함을 불러오는 중입니다.</Text>
+          </View>
+        ) : error ? (
+          <View style={styles.emptyWrap}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : filteredDocuments.length === 0 ? (
+          <View style={styles.emptyWrap}>
+            <Text style={styles.emptyText}>저장된 분석 보고서가 없습니다.</Text>
+          </View>
+        ) : (
+          <View style={styles.list}>
+            {filteredDocuments.map((doc) => (
+              <TouchableOpacity
+                key={doc.id}
+                style={styles.card}
+                activeOpacity={0.85}
+                onPress={() => navigation.navigate('ArchiveDetail', { documentId: doc.id, title: doc.title })}
+              >
+                <View style={styles.cardTop}>
+                  <Text style={styles.cardTitle}>{doc.title}</Text>
+                  <StatusBadge status={doc.status} />
                 </View>
 
-                <View style={styles.cardActions}>
-                  <TouchableOpacity style={styles.actionButton} activeOpacity={0.75}>
-                    <MaterialIcons name="share" size={18} color={Colors.primaryDark} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionButton} activeOpacity={0.75}>
-                    <MaterialIcons name="delete-outline" size={18} color={Colors.primaryDark} />
-                  </TouchableOpacity>
+                <View style={styles.cardBottom}>
+                  <View style={styles.dateWrap}>
+                    <MaterialIcons name="description" size={14} color={Colors.stone400} />
+                    <Text style={styles.dateText}>{doc.date}</Text>
+                  </View>
+
+                  <View style={styles.cardActions}>
+                    <Text style={styles.riskText}>위험 {doc.riskCount}건</Text>
+                    <MaterialIcons name="chevron-right" size={18} color={Colors.stone400} />
+                  </View>
                 </View>
-              </View>
-            </View>
-          ))}
-        </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -328,9 +407,26 @@ const styles = StyleSheet.create({
   cardActions: {
     flexDirection: 'row',
     gap: 8,
+    alignItems: 'center',
   },
-  actionButton: {
-    padding: 4,
+  riskText: {
+    fontSize: FontSize.xs,
+    color: Colors.stone500,
+    fontWeight: '700',
+  },
+  emptyWrap: {
+    paddingVertical: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  emptyText: {
+    fontSize: FontSize.sm,
+    color: Colors.stone500,
+  },
+  errorText: {
+    fontSize: FontSize.sm,
+    color: Colors.red500,
+    textAlign: 'center',
   },
 });
-

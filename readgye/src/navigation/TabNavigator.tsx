@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
 import ArchiveScreen from '../screens/ArchiveScreen';
+import ArchiveDetailScreen from '../screens/ArchiveDetailScreen';
 import CounselingScreen from '../screens/CounselingScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
@@ -14,6 +15,7 @@ import { Colors, FontSize } from '../constants/theme';
 const Tab = createBottomTabNavigator();
 const HomeStack = createNativeStackNavigator();
 const SettingsStack = createNativeStackNavigator();
+const ArchiveStack = createNativeStackNavigator();
 
 // 홈 탭 내부 스택 네비게이터 (홈 → 업로드 → 분석결과)
 function HomeStackNavigator() {
@@ -33,6 +35,15 @@ function SettingsStackNavigator() {
       <SettingsStack.Screen name="SettingsMain" component={SettingsScreen} />
       <SettingsStack.Screen name="EditProfile" component={EditProfileScreen} />
     </SettingsStack.Navigator>
+  );
+}
+
+function ArchiveStackNavigator() {
+  return (
+    <ArchiveStack.Navigator screenOptions={{ headerShown: false }}>
+      <ArchiveStack.Screen name="ArchiveMain" component={ArchiveScreen} />
+      <ArchiveStack.Screen name="ArchiveDetail" component={ArchiveDetailScreen} />
+    </ArchiveStack.Navigator>
   );
 }
 
@@ -71,7 +82,7 @@ export default function TabNavigator() {
       />
       <Tab.Screen
         name="Archive"
-        component={ArchiveScreen}
+        component={ArchiveStackNavigator}
         options={{
           tabBarLabel: '보관함',
           tabBarIcon: ({ color, size }) => (
