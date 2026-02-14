@@ -1,9 +1,10 @@
-﻿import React from 'react';
+import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialIcons } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
 import ArchiveScreen from '../screens/ArchiveScreen';
-import ProfileScreen from '../screens/ProfileScreen';
+import CounselingScreen from '../screens/CounselingScreen';
+import SettingsScreen from '../screens/SettingsScreen';
 import { Colors, FontSize } from '../constants/theme';
 
 const Tab = createBottomTabNavigator();
@@ -16,22 +17,18 @@ export default function TabNavigator() {
         tabBarActiveTintColor: Colors.primaryDark,
         tabBarInactiveTintColor: Colors.stone400,
         tabBarLabelStyle: {
-          fontSize: FontSize.xs,
+          fontSize: 11,
           fontWeight: '600',
-          lineHeight: 14,
-          marginTop: 2,
-          paddingBottom: 1,
+          marginBottom: 4,
         },
-        tabBarItemStyle: {
-          paddingVertical: 2,
+        tabBarIconStyle: {
+          marginTop: 2,
         },
         tabBarStyle: {
           backgroundColor: Colors.white,
           borderTopColor: Colors.stone100,
           borderTopWidth: 1,
-          paddingTop: 6,
-          paddingBottom: 10,
-          height: 72,
+          height: 76,
         },
       }}
     >
@@ -56,16 +53,25 @@ export default function TabNavigator() {
         }}
       />
       <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
+        name="Counseling"
+        component={CounselingScreen}
         options={{
-          tabBarLabel: '내 정보',
+          tabBarLabel: '상담',
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="person-outline" size={size} color={color} />
+            <MaterialIcons name="support-agent" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          tabBarLabel: '설정',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="settings" size={size} color={color} />
           ),
         }}
       />
     </Tab.Navigator>
   );
 }
-

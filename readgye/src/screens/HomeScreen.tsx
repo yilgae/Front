@@ -114,34 +114,30 @@ export default function HomeScreen() {
   const formattedDate = `${now.getMonth() + 1}월 ${now.getDate()}일 ${WEEKDAYS_KO[now.getDay()]}`;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={styles.logo}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
             <Image
               source={require('../../assets/favicon.png')}
               style={styles.logoImage}
               resizeMode='contain'
             />
           </View>
-          <Text style={styles.appName}>읽계</Text>
+          <TouchableOpacity style={styles.notifBtn}>
+            <MaterialIcons
+              name="notifications"
+              size={24}
+              color={Colors.stone600}
+            />
+            <View style={styles.notifDot} />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.notifBtn}>
-          <MaterialIcons
-            name="notifications"
-            size={24}
-            color={Colors.stone600}
-          />
-          <View style={styles.notifDot} />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
         {/* Greeting */}
         <View style={styles.greeting}>
           <Text style={styles.dateText}>{formattedDate}</Text>
@@ -261,34 +257,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
     paddingTop: 8,
     paddingBottom: 12,
-    backgroundColor: Colors.backgroundLight,
   },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-  },
-  logo: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.lg,
-    backgroundColor: '#F0F0F3',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
   },
   logoImage: {
-    width: 30,
-    height: 30,
-  },
-  appName: {
-    fontWeight: '700',
-    fontSize: 20,
-    color: Colors.stone900,
-    letterSpacing: -0.5,
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.xl,
   },
   notifBtn: {
     padding: 8,
@@ -549,5 +528,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 });
+
 
 
