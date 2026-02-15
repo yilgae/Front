@@ -86,15 +86,15 @@ export default function ProfileScreen() {
               showDivider
               onPress={() => navigation.navigate('EditProfile')}
             />
-            <SettingRow icon="lock-outline" label="비밀번호 변경" showDivider />
-            <SettingRow icon="link" label="연동 계정" />
+            <SettingRow icon="lock-outline" label="비밀번호 변경" showDivider onPress={() => navigation.navigate('ChangePassword')} />
+            <SettingRow icon="link" label="연동 계정" onPress={() => navigation.navigate('LinkedAccounts')} />
           </View>
         </View>
 
         <View style={styles.section}>
           <View style={styles.groupCard}>
-            <SettingRow icon="notifications-none" label="푸시 알림" showDivider />
-            <SettingRow icon="mail-outline" label="이메일 알림" />
+            <SettingRow icon="notifications-none" label="푸시 알림" showDivider onPress={() => navigation.navigate('NotificationSettings')} />
+            <SettingRow icon="mail-outline" label="이메일 알림" onPress={() => navigation.navigate('NotificationSettings')} />
           </View>
         </View>
 
@@ -113,11 +113,11 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>지원 및 정보</Text>
           <View style={styles.groupCard}>
-            <SettingRow icon="help-outline" label="자주 묻는 질문" showDivider />
-            <SettingRow icon="chat-bubble-outline" label="문의하기" showDivider />
-            <SettingRow icon="description" label="약관 및 정책" showDivider />
+            <SettingRow icon="help-outline" label="자주 묻는 질문" showDivider onPress={() => navigation.navigate('FAQ')} />
+            <SettingRow icon="chat-bubble-outline" label="문의하기" showDivider onPress={() => navigation.navigate('Contact')} />
+            <SettingRow icon="description" label="약관 및 정책" showDivider onPress={() => navigation.navigate('Terms')} />
             <SettingRow icon="info-outline" label="버전 1.2.0" showDivider />
-            <SettingRow icon="code" label="오픈소스 라이선스" />
+            <SettingRow icon="code" label="오픈소스 라이선스" onPress={() => navigation.navigate('OpenSource')} />
           </View>
         </View>
 

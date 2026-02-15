@@ -8,6 +8,13 @@ import ArchiveDetailScreen from '../screens/ArchiveDetailScreen';
 import CounselingScreen from '../screens/CounselingScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
+import ChangePasswordScreen from '../screens/ChangePasswordScreen';
+import LinkedAccountsScreen from '../screens/LinkedAccountsScreen';
+import NotificationSettingsScreen from '../screens/NotificationSettingsScreen';
+import FAQScreen from '../screens/FAQScreen';
+import ContactScreen from '../screens/ContactScreen';
+import TermsScreen from '../screens/TermsScreen';
+import OpenSourceScreen from '../screens/OpenSourceScreen';
 import UploadScreen from '../screens/UploadScreen';
 import AnalysisResultScreen from '../screens/AnalysisResultScreen';
 import { Colors, FontSize } from '../constants/theme';
@@ -28,12 +35,19 @@ function HomeStackNavigator() {
   );
 }
 
-// 설정 탭 내부 스택 네비게이터 (설정 → 개인정보 수정)
+// 설정 탭 내부 스택 네비게이터
 function SettingsStackNavigator() {
   return (
     <SettingsStack.Navigator screenOptions={{ headerShown: false }}>
       <SettingsStack.Screen name="SettingsMain" component={SettingsScreen} />
       <SettingsStack.Screen name="EditProfile" component={EditProfileScreen} />
+      <SettingsStack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+      <SettingsStack.Screen name="LinkedAccounts" component={LinkedAccountsScreen} />
+      <SettingsStack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
+      <SettingsStack.Screen name="FAQ" component={FAQScreen} />
+      <SettingsStack.Screen name="Contact" component={ContactScreen} />
+      <SettingsStack.Screen name="Terms" component={TermsScreen} />
+      <SettingsStack.Screen name="OpenSource" component={OpenSourceScreen} />
     </SettingsStack.Navigator>
   );
 }
