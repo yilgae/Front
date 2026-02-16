@@ -22,8 +22,14 @@
             "CFBundleURLSchemes": [
               "com.googleusercontent.apps.333280411085-2fbvg1bhtukco7bqnq2hddm7gcfh743i"
             ]
+          },
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.333280411085-2fbvg1bhtukco7bqnq2hddm7gcfh743i"
+            ]
           }
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -39,7 +45,13 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-web-browser"
-    ]
+      "expo-web-browser",
+      "@react-native-google-signin/google-signin"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "b5dff542-9d2b-4540-81b6-6deaf32224bc"
+      }
+    }
   }
 }

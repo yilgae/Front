@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -25,6 +27,45 @@ type PickedFile = {
   mimeType?: string;
 };
 
+type ContractCategory = {
+  key: string;
+  label: string;
+  description: string;
+  endpoint: string;
+  icon: keyof typeof MaterialIcons.glyphMap;
+};
+
+const CONTRACT_CATEGORIES: ContractCategory[] = [
+  {
+    key: 'WORK',
+    label: '일터 계약',
+    description: '근로계약서, 프리랜서 용역 계약서',
+    endpoint: '/api/general/work',
+    icon: 'work',
+  },
+  {
+    key: 'CONSUMER',
+    label: '소비자 계약',
+    description: '헬스장, 예식장, 필라테스 등 서비스 계약',
+    endpoint: '/api/general/consumer',
+    icon: 'shopping-cart',
+  },
+  {
+    key: 'NDA',
+    label: '비밀유지서약 계약',
+    description: '비밀유지서약서(NDA), 전직금지 약정',
+    endpoint: '/api/general/nda',
+    icon: 'lock',
+  },
+  {
+    key: 'GENERAL',
+    label: '기타 계약',
+    description: '동업계약서, 차용증, 각서 등',
+    endpoint: '/api/general/other',
+    icon: 'description',
+  },
+];
+
 // 웹/네이티브 모두 동작하는 알림
 const showAlert = (title: string, message: string) => {
   if (Platform.OS === 'web') {
@@ -40,6 +81,8 @@ export default function UploadScreen({ navigation }: Props) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<ContractCategory>(CONTRACT_CATEGORIES[0]);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
 
   // PDF 파일 선택
   const pickDocument = async () => {
@@ -72,7 +115,7 @@ export default function UploadScreen({ navigation }: Props) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  // 파일 업로드 & 분석 API 호출 (POST /api/analyze)
+  // 파일 업로드 & 분석 API 호출
   const uploadAndAnalyze = async () => {
     if (!pickedFile) return;
 
@@ -108,10 +151,10 @@ export default function UploadScreen({ navigation }: Props) {
         } as any);
       }
 
-      setUploadProgress('AI가 계약서를 분석하고 있습니다...');
+      setUploadProgress(`[${selectedCategory.label}] AI가 계약서를 분석하고 있습니다...`);
 
-      // POST /api/analyze 호출
-      const res = await fetch(`${API_BASE_URL}/api/analyze`, {
+      // 선택된 카테고리의 엔드포인트로 호출
+      const res = await fetch(`${API_BASE_URL}${selectedCategory.endpoint}`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -126,7 +169,6 @@ export default function UploadScreen({ navigation }: Props) {
       }
 
       const data = await res.json();
-      // data = { id, filename, status, created_at, risk_count }
 
       setUploadProgress('분석 완료!');
 
@@ -150,6 +192,44 @@ export default function UploadScreen({ navigation }: Props) {
   const clearFile = () => {
     setPickedFile(null);
   };
+
+  // 카테고리 선택 항목 렌더링
+  const renderCategoryItem = ({ item }: { item: ContractCategory }) => (
+    <TouchableOpacity
+      style={[
+        styles.categoryItem,
+        item.key === selectedCategory.key && styles.categoryItemSelected,
+      ]}
+      activeOpacity={0.7}
+      onPress={() => {
+        setSelectedCategory(item);
+        setShowCategoryModal(false);
+      }}
+    >
+      <View style={[
+        styles.categoryIconWrap,
+        item.key === selectedCategory.key && styles.categoryIconWrapSelected,
+      ]}>
+        <MaterialIcons
+          name={item.icon}
+          size={22}
+          color={item.key === selectedCategory.key ? Colors.white : Colors.primaryDark}
+        />
+      </View>
+      <View style={styles.categoryTextWrap}>
+        <Text style={[
+          styles.categoryLabel,
+          item.key === selectedCategory.key && styles.categoryLabelSelected,
+        ]}>
+          {item.label}
+        </Text>
+        <Text style={styles.categoryDesc}>{item.description}</Text>
+      </View>
+      {item.key === selectedCategory.key && (
+        <MaterialIcons name="check-circle" size={22} color={Colors.primaryDark} />
+      )}
+    </TouchableOpacity>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -234,6 +314,53 @@ export default function UploadScreen({ navigation }: Props) {
                 <MaterialIcons name="close" size={20} color={Colors.stone400} />
               </TouchableOpacity>
             </View>
+
+            {/* 카테고리 선택 드롭다운 */}
+            <Text style={styles.sectionLabel}>계약서 분류</Text>
+            <TouchableOpacity
+              style={styles.categorySelector}
+              activeOpacity={0.7}
+              onPress={() => setShowCategoryModal(true)}
+            >
+              <View style={styles.categorySelectorLeft}>
+                <View style={styles.categorySelectorIconWrap}>
+                  <MaterialIcons name={selectedCategory.icon} size={20} color={Colors.primaryDark} />
+                </View>
+                <View>
+                  <Text style={styles.categorySelectorLabel}>{selectedCategory.label}</Text>
+                  <Text style={styles.categorySelectorDesc}>{selectedCategory.description}</Text>
+                </View>
+              </View>
+              <MaterialIcons name="keyboard-arrow-down" size={24} color={Colors.stone400} />
+            </TouchableOpacity>
+
+            {/* 카테고리 선택 모달 */}
+            <Modal
+              visible={showCategoryModal}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setShowCategoryModal(false)}
+            >
+              <TouchableOpacity
+                style={styles.modalOverlay}
+                activeOpacity={1}
+                onPress={() => setShowCategoryModal(false)}
+              >
+                <View style={styles.modalContent}>
+                  <View style={styles.modalHandle} />
+                  <Text style={styles.modalTitle}>계약서 분류 선택</Text>
+                  <Text style={styles.modalSubtitle}>
+                    분류에 맞게 선택하면 더 정확한 분석 결과를 받을 수 있어요
+                  </Text>
+                  <FlatList
+                    data={CONTRACT_CATEGORIES}
+                    keyExtractor={(item) => item.key}
+                    renderItem={renderCategoryItem}
+                    scrollEnabled={false}
+                  />
+                </View>
+              </TouchableOpacity>
+            </Modal>
 
             <TouchableOpacity
               style={styles.analyzeButton}
@@ -387,7 +514,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: Colors.stone100,
-    marginBottom: 20,
+    marginBottom: 16,
     gap: 14,
   },
   fileIconWrap: {
@@ -414,6 +541,127 @@ const styles = StyleSheet.create({
   clearButton: {
     padding: 8,
   },
+
+  // 카테고리 섹션
+  sectionLabel: {
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    color: Colors.stone600,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  categorySelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.white,
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: Colors.stone100,
+    marginBottom: 20,
+  },
+  categorySelectorLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  categorySelectorIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: Colors.yellow50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categorySelectorLabel: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    color: Colors.stone900,
+  },
+  categorySelectorDesc: {
+    fontSize: FontSize.xs,
+    color: Colors.stone400,
+    marginTop: 2,
+  },
+
+  // 카테고리 모달
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    paddingTop: 12,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.stone300,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: FontSize.xl,
+    fontWeight: '700',
+    color: Colors.stone900,
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontSize: FontSize.sm,
+    color: Colors.stone500,
+    marginBottom: 20,
+  },
+  categoryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 14,
+    marginBottom: 8,
+    backgroundColor: Colors.stone50,
+    gap: 12,
+  },
+  categoryItemSelected: {
+    backgroundColor: Colors.yellow50,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  categoryIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryIconWrapSelected: {
+    backgroundColor: Colors.primaryDark,
+  },
+  categoryTextWrap: {
+    flex: 1,
+  },
+  categoryLabel: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    color: Colors.stone900,
+  },
+  categoryLabelSelected: {
+    color: Colors.primaryDark,
+  },
+  categoryDesc: {
+    fontSize: FontSize.xs,
+    color: Colors.stone500,
+    marginTop: 2,
+  },
+
+  // 분석 버튼
   analyzeButton: {
     flexDirection: 'row',
     alignItems: 'center',
