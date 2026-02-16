@@ -34,6 +34,99 @@ type AnalysisResult = {
   analysis: AnalysisItem[];
 };
 
+type LegacyPayload = {
+  clauses?: Array<{
+    clause_number?: string;
+    article_number?: string;
+    title?: string;
+    risk_level?: string;
+    summary?: string;
+    analysis?: string;
+    suggestion?: string;
+    original_text?: string;
+  }>;
+};
+
+function normalizeRiskLevel(level?: string): AnalysisItem['risk_level'] {
+  if (level === 'HIGH' || level === 'MEDIUM' || level === 'LOW') {
+    return level;
+  }
+  return 'UNKNOWN';
+}
+
+function toText(value: unknown) {
+  return typeof value === 'string' ? value : '';
+}
+
+function parseLegacyPayload(rawText: string): LegacyPayload | null {
+  const text = rawText.trim();
+  if (!text || !text.startsWith('{')) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    // 과거 저장 데이터 중 Python dict 문자열 형태를 최대한 복원한다.
+    const normalized = text
+      .replace(/\bTrue\b/g, 'true')
+      .replace(/\bFalse\b/g, 'false')
+      .replace(/\bNone\b/g, 'null')
+      .replace(/'/g, '"');
+
+    try {
+      return JSON.parse(normalized);
+    } catch {
+      return null;
+    }
+  }
+}
+
+function mapLegacyClauses(payload: LegacyPayload): AnalysisItem[] {
+  if (!Array.isArray(payload.clauses)) {
+    return [];
+  }
+
+  return payload.clauses.map((clause, index) => ({
+    clause_number: toText(clause.clause_number || clause.article_number) || `조항 ${index + 1}`,
+    title: toText(clause.title) || '제목 없음',
+    risk_level: normalizeRiskLevel(clause.risk_level),
+    summary: toText(clause.summary || clause.analysis || clause.original_text),
+    suggestion: toText(clause.suggestion),
+  }));
+}
+
+function normalizeAnalysis(items: AnalysisItem[]): AnalysisItem[] {
+  const normalized: AnalysisItem[] = [];
+
+  for (const item of items) {
+    const legacyFromSummary = parseLegacyPayload(item.summary);
+    if (legacyFromSummary) {
+      const parsed = mapLegacyClauses(legacyFromSummary);
+      if (parsed.length > 0) {
+        normalized.push(...parsed);
+        continue;
+      }
+    }
+
+    const legacyFromSuggestion = parseLegacyPayload(item.suggestion);
+    if (legacyFromSuggestion) {
+      const parsed = mapLegacyClauses(legacyFromSuggestion);
+      if (parsed.length > 0) {
+        normalized.push(...parsed);
+        continue;
+      }
+    }
+
+    normalized.push({
+      ...item,
+      risk_level: normalizeRiskLevel(item.risk_level),
+    });
+  }
+
+  return normalized;
+}
+
 function riskLabel(level: AnalysisItem['risk_level']) {
   if (level === 'HIGH') return '높음';
   if (level === 'MEDIUM') return '중간';
@@ -75,7 +168,10 @@ export default function ArchiveDetailScreen() {
       }
 
       const json = (await res.json()) as AnalysisResult;
-      setData(json);
+      setData({
+        ...json,
+        analysis: normalizeAnalysis(json.analysis || []),
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : '상세 결과를 불러오지 못했습니다.');
       setData(null);

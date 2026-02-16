@@ -74,6 +74,7 @@ function ActivityItem({
   date,
   status,
   statusLabel,
+  onPress,
 }: {
   icon: keyof typeof MaterialIcons.glyphMap;
   iconBg: string;
@@ -82,6 +83,7 @@ function ActivityItem({
   date: string;
   status: RiskStatus;
   statusLabel: string;
+  onPress?: () => void;
 }) {
   const badgeStyle =
     status === 'danger'
@@ -97,7 +99,12 @@ function ActivityItem({
         : styles.badgeAnalyzingText;
 
   return (
-    <TouchableOpacity style={styles.activityCard} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={styles.activityCard}
+      activeOpacity={0.7}
+      disabled={status === 'analyzing'}
+      onPress={onPress}
+    >
       <View style={styles.activityLeft}>
         <View style={[styles.activityIcon, { backgroundColor: iconBg }]}> 
           <MaterialIcons name={icon} size={20} color={iconColor} />
@@ -219,6 +226,20 @@ export default function HomeScreen() {
     [recentActivities]
   );
 
+  const handleRecentActivityPress = useCallback(
+    (item: RecentActivity) => {
+      if (item.status === 'analyzing') {
+        return;
+      }
+
+      navigation.navigate('Archive', {
+        screen: 'ArchiveDetail',
+        params: { documentId: item.id, title: item.title },
+      });
+    },
+    [navigation]
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -305,6 +326,7 @@ export default function HomeScreen() {
                 date={item.date}
                 status={item.status}
                 statusLabel={item.statusLabel}
+                onPress={() => handleRecentActivityPress(item)}
               />
             ))
           )}

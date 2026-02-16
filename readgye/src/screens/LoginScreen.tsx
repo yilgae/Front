@@ -21,7 +21,7 @@ type Props = {
 };
 
 export default function LoginScreen({ navigation }: Props) {
-  const { signInWithGoogle, signInWithEmail, signInAsGuest } = useAuth();
+  const { signInWithGoogle, signInWithEmail, signInAsGuest, isGoogleSignInAvailable } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -34,6 +34,8 @@ export default function LoginScreen({ navigation }: Props) {
     setError(null);
     try {
       await signInWithGoogle();
+    } catch (e: any) {
+      setError(e?.message || 'Google 로그인에 실패했습니다.');
     } finally {
       setLoading(false);
     }
@@ -153,10 +155,10 @@ export default function LoginScreen({ navigation }: Props) {
 
             {/* Google 로그인 */}
             <TouchableOpacity
-              style={styles.googleButton}
+              style={[styles.googleButton, (!isGoogleSignInAvailable || loading) && styles.googleButtonDisabled]}
               activeOpacity={0.8}
               onPress={handleGoogleLogin}
-              disabled={loading}
+              disabled={!isGoogleSignInAvailable || loading}
             >
               <Image
                 source={{ uri: 'https://developers.google.com/identity/images/g-logo.png' }}
@@ -164,6 +166,11 @@ export default function LoginScreen({ navigation }: Props) {
               />
               <Text style={styles.googleButtonText}>Google로 계속하기</Text>
             </TouchableOpacity>
+            {!isGoogleSignInAvailable && (
+              <Text style={styles.googleDisabledHint}>
+                Expo Go에서는 Google 로그인을 사용할 수 없습니다. 게스트/이메일 로그인을 사용해주세요.
+              </Text>
+            )}
 
             {/* 게스트 로그인 */}
             <TouchableOpacity
@@ -329,6 +336,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     gap: 12,
   },
+  googleButtonDisabled: {
+    opacity: 0.5,
+  },
   googleIcon: {
     width: 20,
     height: 20,
@@ -337,6 +347,13 @@ const styles = StyleSheet.create({
     fontSize: FontSize.md,
     fontWeight: '600',
     color: Colors.stone900,
+  },
+  googleDisabledHint: {
+    fontSize: FontSize.xs,
+    color: Colors.stone500,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginTop: -2,
   },
 
   // Guest

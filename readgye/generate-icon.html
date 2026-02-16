@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Icon Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: #f0f0f0;
+    font-family: 'Noto Sans KR', sans-serif;
+    gap: 20px;
+  }
+  #logo {
+    width: 1024px;
+    height: 1024px;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(145deg, #E8F4FD, #FFF5E6);
+  }
+  #logo::before {
+    content: '';
+    position: absolute;
+    top: -100px;
+    right: -100px;
+    width: 440px;
+    height: 440px;
+    background: radial-gradient(circle, rgba(255, 183, 77, 0.15), transparent 70%);
+    border-radius: 50%;
+  }
+  #logo::after {
+    content: '';
+    position: absolute;
+    bottom: -50px;
+    left: -50px;
+    width: 340px;
+    height: 340px;
+    background: radial-gradient(circle, rgba(100, 181, 246, 0.12), transparent 70%);
+    border-radius: 50%;
+  }
+  .icon-wrapper {
+    position: relative;
+    width: 440px;
+    height: 440px;
+    margin-bottom: 48px;
+  }
+  .doc {
+    width: 320px;
+    height: 390px;
+    background: white;
+    border-radius: 40px;
+    position: absolute;
+    top: 24px;
+    left: 36px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.04);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 72px;
+    gap: 24px;
+  }
+  .doc-line {
+    height: 14px;
+    border-radius: 7px;
+    background: #E0E7EE;
+  }
+  .doc-line:nth-child(1) { width: 196px; }
+  .doc-line:nth-child(2) { width: 220px; }
+  .doc-line.highlight {
+    background: linear-gradient(90deg, #FF8A80, #FF5252);
+    width: 208px;
+    height: 17px;
+    border-radius: 9px;
+    box-shadow: 0 2px 8px rgba(255, 82, 82, 0.25);
+  }
+  .doc-line:nth-child(4) { width: 172px; }
+  .doc-line:nth-child(5) { width: 196px; }
+  .shield {
+    position: absolute;
+    bottom: 0;
+    right: 12px;
+    width: 200px;
+    height: 224px;
+    z-index: 2;
+  }
+  .shield-body {
+    width: 200px;
+    height: 224px;
+    background: linear-gradient(160deg, #64B5F6, #1E88E5);
+    clip-path: path('M100 0 C146 0 200 19 200 68 C200 141 146 200 100 224 C54 200 0 141 0 68 C0 19 54 0 100 0');
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .shield-face {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    margin-top: -4px;
+  }
+  .shield-eyes {
+    display: flex;
+    gap: 34px;
+  }
+  .shield-eye {
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+  }
+  .shield-mouth {
+    width: 40px;
+    height: 20px;
+    border-bottom: 7px solid white;
+    border-radius: 0 0 50% 50%;
+  }
+  .sparkle {
+    position: absolute;
+    animation: none;
+  }
+  .sparkle::before, .sparkle::after {
+    content: '';
+    position: absolute;
+    background: #FFB74D;
+    border-radius: 4px;
+  }
+  .sparkle::before {
+    width: 100%;
+    height: 7px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .sparkle::after {
+    width: 7px;
+    height: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .sparkle-1 {
+    top: 20px;
+    right: 48px;
+    width: 28px;
+    height: 28px;
+  }
+  .sparkle-2 {
+    top: 110px;
+    right: 0px;
+    width: 20px;
+    height: 20px;
+  }
+  .sparkle-3 {
+    bottom: 122px;
+    left: 0px;
+    width: 24px;
+    height: 24px;
+  }
+  .logo-title {
+    font-size: 136px;
+    font-weight: 900;
+    color: #2C3E50;
+    letter-spacing: -5px;
+    position: relative;
+    z-index: 1;
+  }
+  .logo-sub {
+    font-size: 42px;
+    color: #7E8C9A;
+    font-weight: 400;
+    margin-top: 10px;
+    letter-spacing: 2px;
+    position: relative;
+    z-index: 1;
+  }
+  canvas { display: none; }
+  button {
+    padding: 16px 40px;
+    font-size: 18px;
+    background: #1E88E5;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  button:hover { background: #1565C0; }
+  .info { color: #666; font-size: 14px; }
+</style>
+</head>
+<body>
+  <div class="info">1024 x 1024 - Version A (Soft Blue)</div>
+  <div id="logo">
+    <div class="icon-wrapper">
+      <div class="doc">
+        <div class="doc-line"></div>
+        <div class="doc-line"></div>
+        <div class="doc-line highlight"></div>
+        <div class="doc-line"></div>
+        <div class="doc-line"></div>
+      </div>
+      <div class="shield">
+        <div class="shield-body">
+          <div class="shield-face">
+            <div class="shield-eyes">
+              <div class="shield-eye"></div>
+              <div class="shield-eye"></div>
+            </div>
+            <div class="shield-mouth"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sparkle sparkle-1"></div>
+      <div class="sparkle sparkle-2"></div>
+      <div class="sparkle sparkle-3"></div>
+    </div>
+    <div class="logo-title">\uc77d\uacc4</div>
+    <div class="logo-sub">\uacc4\uc57d\uc11c \uc77d\uc5b4\uc8fc\ub294 AI</div>
+  </div>
+  <button onclick="downloadPNG()">PNG \ub2e4\uc6b4\ub85c\ub4dc (1024x1024)</button>
+  <canvas id="canvas" width="1024" height="1024"></canvas>
+
+<script>
+async function downloadPNG() {
+  const { default: html2canvas } = await import('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/+esm');
+  const logo = document.getElementById('logo');
+  const canvas = await html2canvas(logo, {
+    width: 1024,
+    height: 1024,
+    scale: 1,
+    useCORS: true,
+    backgroundColor: null,
+  });
+  const link = document.createElement('a');
+  link.download = 'icon.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+</script>
+</body>
+</html>

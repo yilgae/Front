@@ -1,17 +1,49 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  GoogleSignin,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
 
 const GOOGLE_WEB_CLIENT_ID = '333280411085-vlut8smanu3gk36s4g3p9n253erjult5.apps.googleusercontent.com';
 export const API_BASE_URL = 'https://back-production-e1e1.up.railway.app';
 
-GoogleSignin.configure({
-  webClientId: GOOGLE_WEB_CLIENT_ID,
-  scopes: ['profile', 'email'],
-});
+type GoogleSigninModule = {
+  GoogleSignin: {
+    configure: (config: { webClientId: string; scopes: string[] }) => void;
+    hasPlayServices: () => Promise<void>;
+    signIn: () => Promise<{
+      type: 'success' | 'cancelled';
+      data?: {
+        user: {
+          id: string;
+          name?: string | null;
+          email: string;
+          photo?: string | null;
+        };
+      };
+    }>;
+    signOut: () => Promise<void>;
+  };
+  statusCodes: {
+    SIGN_IN_CANCELLED: string;
+    IN_PROGRESS: string;
+    PLAY_SERVICES_NOT_AVAILABLE: string;
+  };
+};
+
+let googleSigninModule: GoogleSigninModule | null = null;
+try {
+  // Expo Go에서는 네이티브 모듈이 없어 require 단계에서 실패할 수 있다.
+  googleSigninModule = require('@react-native-google-signin/google-signin');
+} catch (e) {
+  console.log('Google Sign-In native module unavailable:', e);
+}
+
+const isGoogleSignInAvailable = !!googleSigninModule;
+
+if (googleSigninModule) {
+  googleSigninModule.GoogleSignin.configure({
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    scopes: ['profile', 'email'],
+  });
+}
 
 export type UserInfo = {
   id: string;
@@ -30,6 +62,7 @@ type AuthContextType = {
   user: UserInfo | null;
   token: string | null;
   isLoading: boolean;
+  isGoogleSignInAvailable: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signUpWithEmail: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>;
@@ -42,6 +75,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   token: null,
   isLoading: true,
+  isGoogleSignInAvailable: false,
   signInWithGoogle: async () => {},
   signInWithEmail: async () => ({ success: false }),
   signUpWithEmail: async () => ({ success: false }),
@@ -114,6 +148,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
+    if (!googleSigninModule) {
+      throw new Error('Expo Go에서는 Google 로그인 네이티브 모듈을 사용할 수 없습니다. Dev Build 또는 EAS 빌드를 사용하세요.');
+    }
+
+    const { GoogleSignin, statusCodes } = googleSigninModule;
     try {
       console.log('Google 로그인 시작 (네이티브)');
       await GoogleSignin.hasPlayServices();
@@ -224,7 +263,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      await GoogleSignin.signOut();
+      if (googleSigninModule) {
+        await googleSigninModule.GoogleSignin.signOut();
+      }
     } catch (e) {
       // Google 로그인이 아닌 경우 무시
     }
@@ -258,7 +299,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, isLoading, signInWithGoogle, signInWithEmail, signUpWithEmail, signInAsGuest, signOut, fetchBackendProfile }}
+      value={{
+        user,
+        token,
+        isLoading,
+        isGoogleSignInAvailable,
+        signInWithGoogle,
+        signInWithEmail,
+        signUpWithEmail,
+        signInAsGuest,
+        signOut,
+        fetchBackendProfile,
+      }}
     >
       {children}
     </AuthContext.Provider>
