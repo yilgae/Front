@@ -83,10 +83,11 @@ export default function AnalysisResultScreen({ route, navigation }: Props) {
   // MODERATE와 MEDIUM 모두 "주의"로 처리
   const isWarning = (level: string) => level === 'MODERATE' || level === 'MEDIUM';
 
-  // 위험도별 카운트
-  const highCount = clauses.filter((c) => c.risk_level === 'HIGH').length;
-  const moderateCount = clauses.filter((c) => isWarning(c.risk_level)).length;
-  const lowCount = clauses.filter((c) => c.risk_level === 'LOW').length;
+  // 위험도별 카운트 (종합 분석 결과 제외)
+  const regularClauses = clauses.filter((c) => c.clause_number !== '종합 분석 결과');
+  const highCount = regularClauses.filter((c) => c.risk_level === 'HIGH').length;
+  const moderateCount = regularClauses.filter((c) => isWarning(c.risk_level)).length;
+  const lowCount = regularClauses.filter((c) => c.risk_level === 'LOW').length;
 
   // 위험도 색상
   const getRiskColor = (level: string) => {
@@ -172,10 +173,12 @@ export default function AnalysisResultScreen({ route, navigation }: Props) {
             </View>
           </View>
 
-          {/* 조항별 결과 */}
-          <Text style={styles.sectionTitle}>조항별 분석 ({clauses.length}건)</Text>
-
-          {clauses.map((clause, index) => {
+          {/* 조항별 결과 (종합 분석 결과는 맨 아래로) */}
+          {(() => {
+            const regular = clauses.filter((c) => c.clause_number !== '종합 분석 결과');
+            const summary = clauses.filter((c) => c.clause_number === '종합 분석 결과');
+            return (<><Text style={styles.sectionTitle}>조항별 분석 ({regular.length}건)</Text>
+            {[...regular, ...summary].map((clause, index) => {
             const color = getRiskColor(clause.risk_level);
             return (
               <View
@@ -232,6 +235,9 @@ export default function AnalysisResultScreen({ route, navigation }: Props) {
               </View>
             );
           })}
+
+          </>);
+          })()}
 
           {clauses.length === 0 && (
             <View style={styles.emptyWrap}>

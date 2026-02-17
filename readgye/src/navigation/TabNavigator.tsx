@@ -12,6 +12,7 @@ import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import NotificationSettingsScreen from '../screens/NotificationSettingsScreen';
 import FAQScreen from '../screens/FAQScreen';
 import ContactScreen from '../screens/ContactScreen';
+import AdminContactScreen from '../screens/AdminContactScreen';
 import TermsScreen from '../screens/TermsScreen';
 import OpenSourceScreen from '../screens/OpenSourceScreen';
 import MembershipScreen from '../screens/MembershipScreen';
@@ -48,6 +49,7 @@ function SettingsStackNavigator() {
       <SettingsStack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
       <SettingsStack.Screen name="FAQ" component={FAQScreen} />
       <SettingsStack.Screen name="Contact" component={ContactScreen} />
+      <SettingsStack.Screen name="AdminContact" component={AdminContactScreen} />
       <SettingsStack.Screen name="Terms" component={TermsScreen} />
       <SettingsStack.Screen name="OpenSource" component={OpenSourceScreen} />
       <SettingsStack.Screen name="Membership" component={MembershipScreen} />

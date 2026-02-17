@@ -58,6 +58,13 @@ const CONTRACT_CATEGORIES: ContractCategory[] = [
     icon: 'lock',
   },
   {
+    key: 'REAL_ESTATE',
+    label: '부동산 계약',
+    description: '전세/월세 임대차계약서, 매매계약서',
+    endpoint: '/api/real-estate/analyze',
+    icon: 'home',
+  },
+  {
     key: 'GENERAL',
     label: '기타 계약',
     description: '동업계약서, 차용증, 각서 등',

@@ -108,6 +108,15 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {user?.is_admin && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>관리자</Text>
+            <View style={styles.groupCard}>
+              <SettingRow icon="admin-panel-settings" label="문의 관리" onPress={() => navigation.navigate('AdminContact')} />
+            </View>
+          </View>
+        )}
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>지원 및 정보</Text>
           <View style={styles.groupCard}>

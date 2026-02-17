@@ -51,6 +51,7 @@ export type UserInfo = {
   name: string;
   email: string;
   picture: string;
+  is_admin?: boolean;
 };
 
 export type BackendProfile = {
@@ -197,6 +198,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const tokenData = await loginRes.json();
         setToken(tokenData.access_token);
         await AsyncStorage.setItem('backendToken', tokenData.access_token);
+
+        // is_admin 정보 가져오기
+        try {
+          const meRes = await fetch(`${API_BASE_URL}/api/auth/me`, {
+            headers: { Authorization: `Bearer ${tokenData.access_token}` },
+          });
+          if (meRes.ok) {
+            const profile = await meRes.json();
+            setUser((prev) =>
+              prev ? { ...prev, is_admin: profile.is_admin || false } : prev,
+            );
+          }
+        } catch {}
+
         console.log('백엔드 로그인 성공, 토큰 저장 완료');
       } else {
         console.log('백엔드 로그인 실패:', loginRes.status);
@@ -297,6 +312,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: profile.name,
           email: profile.email,
           picture: '',
+          is_admin: profile.is_admin || false,
         };
         setUser(userData);
         await AsyncStorage.setItem('user', JSON.stringify(userData));
