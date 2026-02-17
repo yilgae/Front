@@ -73,6 +73,13 @@ export default function MembershipScreen({ navigation }: Props) {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.demoNoticeCard}>
+          <MaterialIcons name="campaign" size={18} color={Colors.primaryDark} />
+          <Text style={styles.demoNoticeText}>
+            현재는 데모라서 작동하지 않는 페이지입니다.
+          </Text>
+        </View>
+
         {/* 현재 플랜 카드 */}
         <View style={styles.currentPlanCard}>
           <View style={styles.currentPlanTop}>
@@ -320,6 +327,24 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingBottom: 32,
+  },
+  demoNoticeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: Colors.yellow50,
+    borderWidth: 1,
+    borderColor: Colors.yellow100,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  demoNoticeText: {
+    flex: 1,
+    fontSize: FontSize.sm,
+    color: Colors.stone600,
+    fontWeight: '600',
   },
 
   // 현재 플랜

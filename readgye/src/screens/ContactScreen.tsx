@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors, FontSize } from '../constants/theme';
-import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL, useAuth } from '../context/AuthContext';
 
 type Props = {
   navigation: any;
@@ -28,7 +28,7 @@ const categories = [
 ];
 
 export default function ContactScreen({ navigation }: Props) {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -53,12 +53,36 @@ export default function ContactScreen({ navigation }: Props) {
     }
 
     setIsSubmitting(true);
+    try {
+      if (!token) {
+        throw new Error('로그인이 필요합니다.');
+      }
 
-    // 실제 API 연동 시 교체
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+      const res = await fetch(`${API_BASE_URL}/api/contact`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          category: selectedCategory,
+          title: title.trim(),
+          content: content.trim(),
+        }),
+      });
 
-    setIsSubmitting(false);
-    setSubmitted(true);
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.detail || '문의 접수에 실패했습니다.');
+      }
+
+      setSubmitted(true);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : '문의 접수에 실패했습니다.';
+      Platform.OS === 'web' ? window.alert(message) : Alert.alert('오류', message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (submitted) {

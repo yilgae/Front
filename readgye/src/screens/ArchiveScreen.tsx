@@ -247,7 +247,7 @@ export default function ArchiveScreen() {
             activeOpacity={0.8}
             onPress={() => setFilter('done')}
           >
-            <Text style={[styles.filterText, filter === 'done' && styles.filterTextActive]}>분석 완료</Text>
+            <Text style={[styles.filterText, filter === 'done' && styles.filterTextActive]}>안전한 계약서</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.filterTab, styles.filterTabDivider, filter === 'review' && styles.filterTabActive]}

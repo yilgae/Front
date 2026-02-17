@@ -74,7 +74,6 @@ export default function ProfileScreen() {
               <Text style={styles.profileEmail}>{user?.email ?? ''}</Text>
             </View>
           </View>
-          <MaterialIcons name="chevron-right" size={22} color={Colors.stone300} />
         </TouchableOpacity>
 
         <View style={styles.section}>

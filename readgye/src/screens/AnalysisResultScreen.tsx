@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 12,
     borderLeftWidth: 3,
-    borderLeftColor: Colors.stone200,
+    borderLeftColor: Colors.stone100,
   },
   originalText: {
     fontSize: FontSize.xs,
