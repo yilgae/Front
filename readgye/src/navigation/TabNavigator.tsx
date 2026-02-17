@@ -9,7 +9,6 @@ import CounselingScreen from '../screens/CounselingScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
 import ChangePasswordScreen from '../screens/ChangePasswordScreen';
-import LinkedAccountsScreen from '../screens/LinkedAccountsScreen';
 import NotificationSettingsScreen from '../screens/NotificationSettingsScreen';
 import FAQScreen from '../screens/FAQScreen';
 import ContactScreen from '../screens/ContactScreen';
@@ -44,7 +43,6 @@ function SettingsStackNavigator() {
       <SettingsStack.Screen name="SettingsMain" component={SettingsScreen} />
       <SettingsStack.Screen name="EditProfile" component={EditProfileScreen} />
       <SettingsStack.Screen name="ChangePassword" component={ChangePasswordScreen} />
-      <SettingsStack.Screen name="LinkedAccounts" component={LinkedAccountsScreen} />
       <SettingsStack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
       <SettingsStack.Screen name="FAQ" component={FAQScreen} />
       <SettingsStack.Screen name="Contact" component={ContactScreen} />

@@ -86,15 +86,13 @@ export default function ProfileScreen() {
               showDivider
               onPress={() => navigation.navigate('EditProfile')}
             />
-            <SettingRow icon="lock-outline" label="비밀번호 변경" showDivider onPress={() => navigation.navigate('ChangePassword')} />
-            <SettingRow icon="link" label="연동 계정" onPress={() => navigation.navigate('LinkedAccounts')} />
+            <SettingRow icon="lock-outline" label="비밀번호 변경" onPress={() => navigation.navigate('ChangePassword')} />
           </View>
         </View>
 
         <View style={styles.section}>
           <View style={styles.groupCard}>
-            <SettingRow icon="notifications-none" label="푸시 알림" showDivider onPress={() => navigation.navigate('NotificationSettings')} />
-            <SettingRow icon="mail-outline" label="이메일 알림" onPress={() => navigation.navigate('NotificationSettings')} />
+            <SettingRow icon="notifications-none" label="푸시 알림" onPress={() => navigation.navigate('NotificationSettings')} />
           </View>
         </View>
 
@@ -248,4 +246,3 @@ const styles = StyleSheet.create({
     color: Colors.red500,
   },
 });
-

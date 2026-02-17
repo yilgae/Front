@@ -20,6 +20,7 @@ type Props = {
 type ClauseResult = {
   clause_number: string;
   title: string;
+  original_text?: string;
   risk_level: 'HIGH' | 'MEDIUM' | 'LOW' | string;
   summary: string;
   suggestion: string;
@@ -186,6 +187,14 @@ export default function AnalysisResultScreen({ route, navigation }: Props) {
                     </Text>
                   </View>
                 </View>
+
+                {/* 원문 */}
+                {clause.original_text ? (
+                  <View style={[styles.clauseSection, styles.originalTextSection]}>
+                    <Text style={styles.clauseSectionLabel}>계약서 원문</Text>
+                    <Text style={styles.originalText}>{clause.original_text}</Text>
+                  </View>
+                ) : null}
 
                 {/* 위험 요약 */}
                 {clause.summary ? (
@@ -390,6 +399,19 @@ const styles = StyleSheet.create({
   },
   clauseSection: {
     marginBottom: 8,
+  },
+  originalTextSection: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 10,
+    padding: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.stone200,
+  },
+  originalText: {
+    fontSize: FontSize.xs,
+    color: Colors.stone500,
+    lineHeight: 18,
+    fontStyle: 'italic',
   },
   suggestionSection: {
     backgroundColor: Colors.stone50,
