@@ -217,7 +217,7 @@ export default function PaymentMethodScreen({ navigation }: Props) {
         <View style={styles.infoCard}>
           <MaterialIcons name="lock" size={18} color={Colors.primaryDark} />
           <Text style={styles.infoText}>
-            모든 결제 정보는 PCI DSS 기준에 따라 안전하게 암호화되어 처리됩니다. 읽계는 카드 정보를 직접 저장하지 않습니다.
+            모든 결제 정보는 PCI DSS 기준에 따라 안전하게 암호화되어 처리됩니다. 똑똑은 카드 정보를 직접 저장하지 않습니다.
           </Text>
         </View>
       </ScrollView>

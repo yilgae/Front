@@ -51,7 +51,7 @@ export default function ChangePasswordScreen({ navigation }: Props) {
     setIsSubmitting(true);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
+      const res = await fetch(`${API_BASE_URL}/api/users/auth/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

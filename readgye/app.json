@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "readgye",
+    "name": "똑똑",
     "slug": "readgye",
     "scheme": "readgye",
     "version": "1.0.0",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.readgye",
+      "bundleIdentifier": "com.knockknock.app",
       "infoPlist": {
         "CFBundleURLTypes": [
           {
@@ -39,7 +39,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.readgye"
+      "package": "com.knockknock.app"
     },
     "web": {
       "favicon": "./assets/logo_orange_strong.png"

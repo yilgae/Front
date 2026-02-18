@@ -88,7 +88,7 @@ export default function SignUpScreen({ navigation }: Props) {
             </TouchableOpacity>
 
             <Text style={styles.title}>회원가입</Text>
-            <Text style={styles.subtitle}>읽계에 가입하고 계약서를 분석해보세요.</Text>
+            <Text style={styles.subtitle}>똑똑에 가입하고 계약서를 분석해보세요.</Text>
           </View>
 
           {/* 폼 */}
