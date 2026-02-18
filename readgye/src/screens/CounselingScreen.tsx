@@ -362,11 +362,11 @@ export default function CounselingScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={0}
-      >
+      {/* ──────────────────────────────────────────────────────────
+          [수정됨] 상단 영역(헤더 + 면책 + 세션)을 하나의 View로 묶어 
+          zIndex와 배경색을 부여함. KeyboardAvoidingView 밖으로 빼냄.
+         ────────────────────────────────────────────────────────── */}
+      <View style={styles.topSection}>
         {/* ─── 헤더 ─── */}
         <View style={styles.header}>
           <TouchableOpacity
@@ -398,6 +398,7 @@ export default function CounselingScreen() {
           </Text>
         </View>
 
+        {/* ─── 최근 세션 ─── */}
         <View style={styles.sessionStrip}>
           <Text style={styles.sessionStripTitle}>최근 세션</Text>
           <ScrollView
@@ -429,7 +430,17 @@ export default function CounselingScreen() {
             )}
           </ScrollView>
         </View>
+      </View>
 
+      {/* ──────────────────────────────────────────────────────────
+          [수정됨] 채팅 영역만 KeyboardAvoidingView로 감쌈
+          Android에서는 behavior를 undefined로 설정하여 OS의 adjustResize 사용
+         ────────────────────────────────────────────────────────── */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={0}
+      >
         {/* ─── 에러 배너 ─── */}
         {error && (
           <View style={styles.errorBanner}>
@@ -438,7 +449,7 @@ export default function CounselingScreen() {
           </View>
         )}
 
-        {/* ─── 채팅 영역 ─── */}
+        {/* ─── 채팅 목록 ─── */}
         {messages.length === 0 ? (
           renderEmptyState()
         ) : (
@@ -489,6 +500,7 @@ export default function CounselingScreen() {
         </View>
       </KeyboardAvoidingView>
 
+      {/* ─── 세션 모달 ─── */}
       <Modal
         visible={isSessionModalVisible}
         transparent
@@ -558,6 +570,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.backgroundLight,
+  },
+  // [추가됨] 상단 영역 고정 스타일
+  topSection: {
+    backgroundColor: Colors.backgroundLight,
+    zIndex: 10,
+    elevation: 5, // Android 그림자
+    paddingBottom: 8,
   },
   // 헤더
   header: {
