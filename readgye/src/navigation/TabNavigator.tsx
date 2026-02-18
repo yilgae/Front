@@ -1,6 +1,8 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import HomeScreen from '../screens/HomeScreen';
 import ArchiveScreen from '../screens/ArchiveScreen';
@@ -68,6 +70,9 @@ function ArchiveStackNavigator() {
 }
 
 export default function TabNavigator() {
+  const insets = useSafeAreaInsets();
+  const bottomInset = Platform.OS === 'android' ? insets.bottom : 0;
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -77,7 +82,7 @@ export default function TabNavigator() {
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
-          marginBottom: 4,
+          marginBottom: 4 + bottomInset,
         },
         tabBarIconStyle: {
           marginTop: 2,
@@ -86,7 +91,8 @@ export default function TabNavigator() {
           backgroundColor: Colors.white,
           borderTopColor: Colors.stone100,
           borderTopWidth: 1,
-          height: 76,
+          height: 76 + bottomInset,
+          paddingBottom: bottomInset,
         },
       }}
     >

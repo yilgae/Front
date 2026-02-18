@@ -258,6 +258,7 @@ export default function HomeScreen() {
       navigation.navigate('Archive', {
         screen: 'ArchiveDetail',
         params: { documentId: item.id, title: item.title },
+        initial: false,
       });
     },
     [navigation]
@@ -273,7 +274,7 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Image
-              source={require('../../assets/favicon.png')}
+              source={require('../../assets/logo_orange_strong.png')}
               style={styles.logoImage}
               resizeMode="contain"
             />

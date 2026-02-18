@@ -135,7 +135,7 @@ export default function OpenSourceScreen({ navigation }: Props) {
         <View style={styles.descCard}>
           <MaterialIcons name="code" size={18} color={Colors.primaryDark} />
           <Text style={styles.descText}>
-            읽계는 아래의 오픈소스 라이브러리를 사용하고 있습니다. 각 라이브러리의 라이선스를 확인하려면 해당 항목을 탭하세요.
+            똑똑은 아래의 오픈소스 라이브러리를 사용하고 있습니다. 각 라이브러리의 라이선스를 확인하려면 해당 항목을 탭하세요.
           </Text>
         </View>
 

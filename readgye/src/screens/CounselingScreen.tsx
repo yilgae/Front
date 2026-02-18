@@ -266,13 +266,13 @@ export default function CounselingScreen() {
       <View style={styles.aiRow}>
         <View style={styles.avatarWrap}>
           <Image
-            source={require('../../assets/favicon.png')}
+            source={require('../../assets/logo_orange_strong.png')}
             style={styles.avatar}
             resizeMode="cover"
           />
         </View>
         <View style={styles.aiMessageArea}>
-          <Text style={styles.sender}>읽계 AI</Text>
+          <Text style={styles.sender}>똑똑 AI</Text>
           <View style={styles.aiBubble}>
             <Text style={styles.aiText}>{item.content}</Text>
           </View>
@@ -345,13 +345,13 @@ export default function CounselingScreen() {
     <View style={styles.aiRow}>
       <View style={styles.avatarWrap}>
         <Image
-          source={require('../../assets/favicon.png')}
+          source={require('../../assets/logo_orange_strong.png')}
           style={styles.avatar}
           resizeMode="cover"
         />
       </View>
       <View style={styles.aiMessageArea}>
-        <Text style={styles.sender}>읽계 AI</Text>
+        <Text style={styles.sender}>똑똑 AI</Text>
         <View style={styles.typingBubble}>
           <ActivityIndicator size="small" color="#0f49bd" />
           <Text style={styles.typingText}>답변을 생성하고 있어요...</Text>
@@ -362,83 +362,88 @@ export default function CounselingScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      {/* ─── 헤더 ─── */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          activeOpacity={0.8}
-          onPress={startNewChat}
-        >
-          <MaterialIcons name="add" size={24} color={Colors.stone600} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>AI 법률 상담</Text>
-        <TouchableOpacity
-          style={styles.headerButton}
-          activeOpacity={0.8}
-          onPress={async () => {
-            await fetchSessions();
-            setIsSessionModalVisible(true);
-          }}
-        >
-          <MaterialIcons name="history" size={22} color={Colors.stone600} />
-        </TouchableOpacity>
-      </View>
-
-      {/* ─── 면책 안내 ─── */}
-      <View style={styles.disclaimerWrap}>
-        <MaterialIcons name="info-outline" size={16} color="#0f49bd" />
-        <Text style={styles.disclaimerText}>
-          읽계 AI의 분석 결과는 법적 효력이 없으며, 참고용으로만 활용해 주세요.
-          정확한 판단은 변호사와의 상담을 권장합니다.
-        </Text>
-      </View>
-
-      <View style={styles.sessionStrip}>
-        <Text style={styles.sessionStripTitle}>최근 세션</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.sessionStripScroll}
-        >
-          {sessions.length === 0 ? (
-            <Text style={styles.sessionStripEmpty}>아직 저장된 세션이 없습니다.</Text>
-          ) : (
-            sessions.map((s) => (
-              <TouchableOpacity
-                key={s.id}
-                style={[
-                  styles.sessionChip,
-                  sessionId === s.id && styles.sessionChipActive,
-                ]}
-                onPress={async () => {
-                  await loadSessionMessages(s.id);
-                  setIsNewChatMode(false);
-                }}
-              >
-                <Text style={styles.sessionChipTitle} numberOfLines={1}>
-                  {s.title || '새 상담'}
-                </Text>
-                <Text style={styles.sessionChipTime}>{formatTime(s.created_at)}</Text>
-              </TouchableOpacity>
-            ))
-          )}
-        </ScrollView>
-      </View>
-
-      {/* ─── 에러 배너 ─── */}
-      {error && (
-        <View style={styles.errorBanner}>
-          <MaterialIcons name="error-outline" size={14} color={Colors.red600} />
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
-
-      {/* ─── 채팅 영역 ─── */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
+<<<<<<< HEAD
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+=======
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+>>>>>>> d6a3e94166ea41ae1645f06d316d5bdbe1f430bc
       >
+        {/* ─── 헤더 ─── */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.headerButton}
+            activeOpacity={0.8}
+            onPress={startNewChat}
+          >
+            <MaterialIcons name="add" size={24} color={Colors.stone600} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>AI 법률 상담</Text>
+          <TouchableOpacity
+            style={styles.headerButton}
+            activeOpacity={0.8}
+            onPress={async () => {
+              await fetchSessions();
+              setIsSessionModalVisible(true);
+            }}
+          >
+            <MaterialIcons name="history" size={22} color={Colors.stone600} />
+          </TouchableOpacity>
+        </View>
+
+        {/* ─── 면책 안내 ─── */}
+        <View style={styles.disclaimerWrap}>
+          <MaterialIcons name="info-outline" size={16} color="#0f49bd" />
+          <Text style={styles.disclaimerText}>
+            똑똑 AI의 분석 결과는 법적 효력이 없으며, 참고용으로만 활용해 주세요.
+            정확한 판단은 변호사와의 상담을 권장합니다.
+          </Text>
+        </View>
+
+        <View style={styles.sessionStrip}>
+          <Text style={styles.sessionStripTitle}>최근 세션</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.sessionStripScroll}
+          >
+            {sessions.length === 0 ? (
+              <Text style={styles.sessionStripEmpty}>아직 저장된 세션이 없습니다.</Text>
+            ) : (
+              sessions.map((s) => (
+                <TouchableOpacity
+                  key={s.id}
+                  style={[
+                    styles.sessionChip,
+                    sessionId === s.id && styles.sessionChipActive,
+                  ]}
+                  onPress={async () => {
+                    await loadSessionMessages(s.id);
+                    setIsNewChatMode(false);
+                  }}
+                >
+                  <Text style={styles.sessionChipTitle} numberOfLines={1}>
+                    {s.title || '새 상담'}
+                  </Text>
+                  <Text style={styles.sessionChipTime}>{formatTime(s.created_at)}</Text>
+                </TouchableOpacity>
+              ))
+            )}
+          </ScrollView>
+        </View>
+
+        {/* ─── 에러 배너 ─── */}
+        {error && (
+          <View style={styles.errorBanner}>
+            <MaterialIcons name="error-outline" size={14} color={Colors.red600} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
+        {/* ─── 채팅 영역 ─── */}
         {messages.length === 0 ? (
           renderEmptyState()
         ) : (

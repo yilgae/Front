@@ -77,11 +77,11 @@ export default function LoginScreen({ navigation }: Props) {
           {/* Logo */}
           <View style={styles.logoArea}>
             <Image
-              source={require('../../assets/favicon.png')}
+              source={require('../../assets/logo_orange_strong.png')}
               style={styles.logo}
               resizeMode="contain"
             />
-            <Text style={styles.appName}>읽계</Text>
+            <Text style={styles.appName}>똑똑</Text>
             <Text style={styles.appDesc}>계약서 읽어주는 AI</Text>
           </View>
 
