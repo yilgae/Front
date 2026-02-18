@@ -364,13 +364,8 @@ export default function CounselingScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-<<<<<<< HEAD
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-=======
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
->>>>>>> d6a3e94166ea41ae1645f06d316d5bdbe1f430bc
       >
         {/* ─── 헤더 ─── */}
         <View style={styles.header}>
