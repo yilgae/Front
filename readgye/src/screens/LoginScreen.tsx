@@ -77,7 +77,7 @@ export default function LoginScreen({ navigation }: Props) {
           {/* Logo */}
           <View style={styles.logoArea}>
             <Image
-              source={require('../../assets/favicon.png')}
+              source={require('../../assets/logo_orange_strong.png')}
               style={styles.logo}
               resizeMode="contain"
             />

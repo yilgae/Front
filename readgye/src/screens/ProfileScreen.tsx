@@ -64,7 +64,7 @@ export default function ProfileScreen() {
               />
             ) : (
               <Image
-                source={require('../../assets/favicon.png')}
+                source={require('../../assets/logo_orange_strong.png')}
                 style={styles.avatar}
                 resizeMode="cover"
               />

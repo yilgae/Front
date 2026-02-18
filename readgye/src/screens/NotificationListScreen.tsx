@@ -111,6 +111,7 @@ export default function NotificationListScreen() {
         navigation.navigate('Archive', {
           screen: 'ArchiveDetail',
           params: { documentId: item.document_id, title: '분석 결과' },
+          initial: false,
         });
       }
     },

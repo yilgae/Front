@@ -266,7 +266,7 @@ export default function CounselingScreen() {
       <View style={styles.aiRow}>
         <View style={styles.avatarWrap}>
           <Image
-            source={require('../../assets/favicon.png')}
+            source={require('../../assets/logo_orange_strong.png')}
             style={styles.avatar}
             resizeMode="cover"
           />
@@ -345,7 +345,7 @@ export default function CounselingScreen() {
     <View style={styles.aiRow}>
       <View style={styles.avatarWrap}>
         <Image
-          source={require('../../assets/favicon.png')}
+          source={require('../../assets/logo_orange_strong.png')}
           style={styles.avatar}
           resizeMode="cover"
         />

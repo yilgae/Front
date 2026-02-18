@@ -2,8 +2,10 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, Platform } from 'react-native';
 
-const GOOGLE_WEB_CLIENT_ID = '333280411085-vlut8smanu3gk36s4g3p9n253erjult5.apps.googleusercontent.com';
-export const API_BASE_URL = 'https://back-production-e1e1.up.railway.app';
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? '';
+const GUEST_EMAIL = process.env.EXPO_PUBLIC_GUEST_EMAIL ?? '';
+const GUEST_PASSWORD = process.env.EXPO_PUBLIC_GUEST_PASSWORD ?? '';
 
 type GoogleSigninModule = {
   GoogleSignin: {
@@ -210,7 +212,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               prev ? { ...prev, is_admin: profile.is_admin || false } : prev,
             );
           }
-        } catch {}
+        } catch (e) {
+          console.log('관리자 정보 조회 실패 (기능에는 영향 없음):', e);
+        }
 
         console.log('백엔드 로그인 성공, 토큰 저장 완료');
       } else {
@@ -231,9 +235,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (storedToken) {
           setToken(storedToken);
-        } else if (parsedUser.email === 'guest@readgye.app') {
+        } else if (parsedUser.email === GUEST_EMAIL) {
           console.log('게스트 토큰 없음 → 백엔드 자동 로그인 시도');
-          await loginToBackend('guest@readgye.app', 'guest1234!', '게스트');
+          await loginToBackend(GUEST_EMAIL, GUEST_PASSWORD, '게스트');
         }
       }
     } catch (e) {
@@ -344,18 +348,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInAsGuest = async () => {
-    const guestEmail = 'guest@readgye.app';
-    const guestPassword = 'guest1234!';
     const guestUser: UserInfo = {
       id: 'guest',
       name: '게스트',
-      email: guestEmail,
+      email: GUEST_EMAIL,
       picture: '',
     };
     setUser(guestUser);
     await AsyncStorage.setItem('user', JSON.stringify(guestUser));
 
-    await loginToBackend(guestEmail, guestPassword, '게스트');
+    await loginToBackend(GUEST_EMAIL, GUEST_PASSWORD, '게스트');
   };
 
   const signOut = async () => {
@@ -364,7 +366,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await googleSigninModule.GoogleSignin.signOut();
       }
     } catch (e) {
-      // Google 로그인이 아닌 경우 무시
+      console.log('Google 로그아웃 실패 (이메일/게스트 로그인이었을 수 있음):', e);
     }
     setUser(null);
     setToken(null);

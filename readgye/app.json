@@ -42,7 +42,7 @@
       "package": "com.anonymous.readgye"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/logo_orange_strong.png"
     },
     "plugins": [
       "expo-web-browser",
