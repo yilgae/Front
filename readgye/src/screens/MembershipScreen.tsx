@@ -64,34 +64,35 @@ export default function MembershipScreen({ navigation }: Props) {
     try {
       setIsLoading(true);
       
-      // 1. 백엔드에 결제창 URL 요청
+      // 1. 선택된 플랜(selectedPlan) 정보를 함께 보냅니다.
       const res = await fetch(`${API_BASE_URL}/api/users/polar/checkout`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json' // 👈 컨텐츠 타입 명시
+        },
+        body: JSON.stringify({ plan_type: selectedPlan }) // 👈 선택된 플랜 전달
       });
       
-      if (!res.ok) throw new Error('결제창을 생성하지 못했습니다.');
+      if (!res.ok) throw new Error('결제창 생성 실패');
       
       const data = await res.json();
       
-      // 2. 앱 내에서 Polar 결제 웹페이지 띄우기
+      // 2. 결제 브라우저 열기
       await WebBrowser.openBrowserAsync(data.checkout_url);
       
-      // 3. 브라우저가 닫히면, 해커톤용 강제 업그레이드 API 호출!
+      // 3. 해커톤 치트키 API 호출 (업그레이드)
       await fetch(`${API_BASE_URL}/api/users/polar/upgrade-demo`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      // 4. [치트키 발동] 에러를 내던 fetchUserInfo() 대신 로컬 상태를 True로 변경!
-      // 이렇게 하면 앱을 껐다 켜지 않아도 UI가 프리미엄으로 즉시 바뀝니다.
       setLocalPremium(true); 
-      
-      console.warn('성공', '프리미엄 플랜이 활성화되었습니다! 🎉');
+      console.warn('프리미엄 활성화 완료! 🚀');
 
     } catch (error) {
       console.error(error);
-      console.warn('오류', '결제 진행 중 문제가 발생했습니다.');
+      console.warn('결제 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }
