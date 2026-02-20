@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -36,13 +36,14 @@ const planFeatures: PlanFeature[] = [
 ];
 
 export default function MembershipScreen({ navigation }: Props) {
-  // 1. 에러를 내던 fetchUserInfo 제거
-  const { user, token } = useAuth(); 
-  
-  // 2. [치트키] 화면 즉각 업데이트를 위한 로컬 상태 추가
+  const { user, token, fetchUserInfo } = useAuth(); // fetchUserInfo 가져오기
   const [localPremium, setLocalPremium] = useState(false);
-  
-  // 3. (user as any)를 써서 강제로 타입 에러를 우회하고, 로컬 상태를 결합
+
+  useEffect(() => {
+    // 화면에 들어올 때마다 서버의 최신 프리미엄 정보를 확인합니다.
+    fetchUserInfo();
+  }, []);
+
   const currentPlan = ((user as any)?.is_premium || localPremium) ? 'premium' : 'free';
 
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
@@ -86,7 +87,7 @@ export default function MembershipScreen({ navigation }: Props) {
       // 이렇게 하면 앱을 껐다 켜지 않아도 UI가 프리미엄으로 즉시 바뀝니다.
       setLocalPremium(true); 
       
-      console.log('성공', '프리미엄 플랜이 활성화되었습니다! 🎉');
+      console.warn('성공', '프리미엄 플랜이 활성화되었습니다! 🎉');
 
     } catch (error) {
       console.error(error);
@@ -98,15 +99,12 @@ export default function MembershipScreen({ navigation }: Props) {
 
   // 👇 추가할 구독 해지 로직
   const handleCancelSubscription = async () => {
-    console.log("해지 버튼 클릭됨!");
-    
-    // Alert.alert를 제거하고 바로 로직을 시작합니다.
     if (!token) return;
 
     try {
       setIsLoading(true);
-      console.log("서버로 해지 요청을 보냅니다...");
 
+      // 1. 서버에 요청을 보냅니다.
       const res = await fetch(`${API_BASE_URL}/api/users/polar/cancel-demo`, {
         method: 'POST',
         headers: { 
@@ -115,15 +113,18 @@ export default function MembershipScreen({ navigation }: Props) {
         }
       });
 
-      console.log("서버 응답 상태:", res.status);
-
       if (res.ok) {
-        // 성공 시 로컬 상태 변경 (UI 즉시 반영)
+        // 🚀 [낙관적 업데이트] 서버 응답이 오자마자 UI를 먼저 무료 플랜으로 바꿉니다.
+        // fetchUserInfo가 완료되길 기다리지 않으므로 즉시 반응합니다.
         setLocalPremium(false);
-        console.log("해지 성공: 무료 플랜으로 전환되었습니다.");
+        
+        console.warn("해지 성공: 무료 플랜으로 전환되었습니다.");
+
+        // 2. 배경에서 조용히 서버 데이터를 동기화합니다 (await를 붙이지 않음).
+        fetchUserInfo();
       } else {
         const errorText = await res.text();
-        console.warn("해지 실패 서버 메시지:", errorText);
+        console.warn("해지 실패:", errorText);
       }
     } catch (error) {
       console.error("네트워크 에러:", error);

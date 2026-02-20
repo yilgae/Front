@@ -55,6 +55,7 @@ export type UserInfo = {
   email: string;
   picture: string;
   is_admin?: boolean;
+  is_premium?: boolean;
 };
 
 export type BackendProfile = {
@@ -84,6 +85,7 @@ type AuthContextType = {
   signInAsGuest: () => Promise<void>;
   signOut: () => Promise<void>;
   fetchBackendProfile: () => Promise<BackendProfile | null>;
+  fetchUserInfo: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -98,6 +100,7 @@ const AuthContext = createContext<AuthContextType>({
   signInAsGuest: async () => {},
   signOut: async () => {},
   fetchBackendProfile: async () => null,
+  fetchUserInfo: async () => {}, // 👈 새로 추가
 });
 
 export function useAuth() {
@@ -199,7 +202,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (meRes.ok) {
             const profile = await meRes.json();
             setUser((prev) =>
-              prev ? { ...prev, is_admin: profile.is_admin || false } : prev,
+              prev ? { ...prev, is_admin: profile.is_admin || false, is_premium: profile.is_premium || false } : prev,
             );
           }
         } catch (e) {
@@ -315,6 +318,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: profile.email,
           picture: '',
           is_admin: profile.is_admin || false,
+          is_premium: profile.is_premium || false,
         };
         setUser(userData);
         await AsyncStorage.setItem('user', JSON.stringify(userData));
@@ -395,6 +399,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const fetchUserInfo = async () => {
+    try {
+      const currentToken = token || (await AsyncStorage.getItem('backendToken'));
+      if (!currentToken) return;
+
+      // 백엔드의 최신 유저 정보 API 호출 (/api/auth/me 또는 /api/users/me)
+      const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${currentToken}` },
+      });
+
+      if (res.ok) {
+        const profile = await res.json();
+        const userData: UserInfo = {
+          id: profile.id,
+          name: profile.name,
+          email: profile.email,
+          picture: user?.picture || '',
+          is_admin: profile.is_admin || false,
+          is_premium: profile.is_premium || false, // 👈 이제 타입이 맞음
+        };
+
+        setUser(userData);
+        await AsyncStorage.setItem('user', JSON.stringify(userData));
+        console.log('최신 유저 정보 동기화 완료 (Premium:', profile.is_premium, ')');
+      }
+    } catch (e) {
+      console.log('Error fetching user info', e);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -409,6 +443,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signInAsGuest,
         signOut,
         fetchBackendProfile,
+        fetchUserInfo,
       }}
     >
       {children}
