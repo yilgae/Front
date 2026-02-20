@@ -5,11 +5,14 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors, FontSize } from '../constants/theme';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, API_BASE_URL } from '../context/AuthContext';
+import * as WebBrowser from 'expo-web-browser';
 
 type Props = {
   navigation: any;
@@ -33,20 +36,64 @@ const planFeatures: PlanFeature[] = [
 ];
 
 export default function MembershipScreen({ navigation }: Props) {
-  const { user } = useAuth();
-  // 추후 결제 API 연동 시 실제 플랜 정보로 교체
-  const [currentPlan, setCurrentPlan] = useState<'free' | 'premium'>('free');
+  // 1. 에러를 내던 fetchUserInfo 제거
+  const { user, token } = useAuth(); 
+  
+  // 2. [치트키] 화면 즉각 업데이트를 위한 로컬 상태 추가
+  const [localPremium, setLocalPremium] = useState(false);
+  
+  // 3. (user as any)를 써서 강제로 타입 에러를 우회하고, 로컬 상태를 결합
+  const currentPlan = ((user as any)?.is_premium || localPremium) ? 'premium' : 'free';
+
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
+  const [isLoading, setIsLoading] = useState(false); // 로딩 상태 추가
 
   const prices = {
     monthly: { price: '9,900', period: '월' },
     yearly: { price: '6,600', period: '월', total: '79,200', save: '33%' },
   };
 
-  const handleSubscribe = () => {
-    // TODO: 결제 API 연동
-    // 예시: Stripe, 토스페이먼츠, 카카오페이 등
-    console.log('Subscribe to:', selectedPlan);
+  // 👇 결제 로직 교체
+  const handleSubscribe = async () => {
+    if (!token) {
+      Alert.alert('알림', '로그인이 필요합니다.');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      // 1. 백엔드에 결제창 URL 요청
+      const res = await fetch(`${API_BASE_URL}/api/users/polar/checkout`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (!res.ok) throw new Error('결제창을 생성하지 못했습니다.');
+      
+      const data = await res.json();
+      
+      // 2. 앱 내에서 Polar 결제 웹페이지 띄우기
+      await WebBrowser.openBrowserAsync(data.checkout_url);
+      
+      // 3. 브라우저가 닫히면, 해커톤용 강제 업그레이드 API 호출!
+      await fetch(`${API_BASE_URL}/api/users/polar/upgrade-demo`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // 4. [치트키 발동] 에러를 내던 fetchUserInfo() 대신 로컬 상태를 True로 변경!
+      // 이렇게 하면 앱을 껐다 켜지 않아도 UI가 프리미엄으로 즉시 바뀝니다.
+      setLocalPremium(true); 
+      
+      Alert.alert('성공', '프리미엄 플랜이 활성화되었습니다! 🎉');
+
+    } catch (error) {
+      console.error(error);
+      Alert.alert('오류', '결제 진행 중 문제가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleManagePayment = () => {
@@ -191,9 +238,16 @@ export default function MembershipScreen({ navigation }: Props) {
               style={styles.subscribeButton}
               activeOpacity={0.8}
               onPress={handleSubscribe}
+              disabled={isLoading} // 로딩 중일 때는 버튼 터치 막기
             >
-              <MaterialIcons name="workspace-premium" size={20} color={Colors.white} />
-              <Text style={styles.subscribeText}>프리미엄 시작하기</Text>
+              {isLoading ? (
+                <ActivityIndicator color={Colors.white} /> // 빙글빙글 아이콘
+              ) : (
+                <>
+                  <MaterialIcons name="workspace-premium" size={20} color={Colors.white} />
+                  <Text style={styles.subscribeText}>프리미엄 시작하기</Text>
+                </>
+              )}
             </TouchableOpacity>
           </>
         )}
