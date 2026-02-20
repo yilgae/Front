@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors, FontSize } from '../constants/theme';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, API_BASE_URL } from '../context/AuthContext';
+import * as WebBrowser from 'expo-web-browser';
 
 type Props = {
   navigation: any;
@@ -33,20 +36,103 @@ const planFeatures: PlanFeature[] = [
 ];
 
 export default function MembershipScreen({ navigation }: Props) {
-  const { user } = useAuth();
-  // 추후 결제 API 연동 시 실제 플랜 정보로 교체
-  const [currentPlan, setCurrentPlan] = useState<'free' | 'premium'>('free');
+  const { user, token, fetchUserInfo } = useAuth(); // fetchUserInfo 가져오기
+  const [localPremium, setLocalPremium] = useState(false);
+
+  useEffect(() => {
+    // 화면에 들어올 때마다 서버의 최신 프리미엄 정보를 확인합니다.
+    fetchUserInfo();
+  }, []);
+
+  const currentPlan = ((user as any)?.is_premium || localPremium) ? 'premium' : 'free';
+
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
+  const [isLoading, setIsLoading] = useState(false); // 로딩 상태 추가
 
   const prices = {
     monthly: { price: '9,900', period: '월' },
     yearly: { price: '6,600', period: '월', total: '79,200', save: '33%' },
   };
 
-  const handleSubscribe = () => {
-    // TODO: 결제 API 연동
-    // 예시: Stripe, 토스페이먼츠, 카카오페이 등
-    console.log('Subscribe to:', selectedPlan);
+  // 👇 결제 로직 교체
+  const handleSubscribe = async () => {
+    if (!token) {
+      Alert.alert('알림', '로그인이 필요합니다.');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      // 1. 선택된 플랜(selectedPlan) 정보를 함께 보냅니다.
+      const res = await fetch(`${API_BASE_URL}/api/users/polar/checkout`, {
+        method: 'POST',
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json' // 👈 컨텐츠 타입 명시
+        },
+        body: JSON.stringify({ plan_type: selectedPlan }) // 👈 선택된 플랜 전달
+      });
+      
+      if (!res.ok) throw new Error('결제창 생성 실패');
+      
+      const data = await res.json();
+      
+      // 2. 결제 브라우저 열기
+      await WebBrowser.openBrowserAsync(data.checkout_url);
+      
+      // 3. 해커톤 치트키 API 호출 (업그레이드)
+      await fetch(`${API_BASE_URL}/api/users/polar/upgrade-demo`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setLocalPremium(true); 
+      console.warn('프리미엄 활성화 완료! 🚀');
+
+    } catch (error) {
+      console.error(error);
+      console.warn('결제 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 👇 추가할 구독 해지 로직
+  const handleCancelSubscription = async () => {
+    if (!token) return;
+
+    try {
+      setIsLoading(true);
+
+      // 1. 서버에 요청을 보냅니다.
+      const res = await fetch(`${API_BASE_URL}/api/users/polar/cancel-demo`, {
+        method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (res.ok) {
+        // 🚀 [낙관적 업데이트] 서버 응답이 오자마자 UI를 먼저 무료 플랜으로 바꿉니다.
+        // fetchUserInfo가 완료되길 기다리지 않으므로 즉시 반응합니다.
+        setLocalPremium(false);
+        
+        console.warn("해지 성공: 무료 플랜으로 전환되었습니다.");
+
+        // 2. 배경에서 조용히 서버 데이터를 동기화합니다 (await를 붙이지 않음).
+        fetchUserInfo();
+      } else {
+        const errorText = await res.text();
+        console.warn("해지 실패:", errorText);
+      }
+    } catch (error) {
+      console.error("네트워크 에러:", error);
+      console.warn("네트워크 에러가 발생했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleManagePayment = () => {
@@ -76,7 +162,7 @@ export default function MembershipScreen({ navigation }: Props) {
         <View style={styles.demoNoticeCard}>
           <MaterialIcons name="campaign" size={18} color={Colors.primaryDark} />
           <Text style={styles.demoNoticeText}>
-            현재는 데모라서 작동하지 않는 페이지입니다.
+            현재 결제 페이지는 데모 버전으로, 결제 여부와 관계없이 프리미엄이 적용되고 있습니다.
           </Text>
         </View>
 
@@ -191,9 +277,16 @@ export default function MembershipScreen({ navigation }: Props) {
               style={styles.subscribeButton}
               activeOpacity={0.8}
               onPress={handleSubscribe}
+              disabled={isLoading} // 로딩 중일 때는 버튼 터치 막기
             >
-              <MaterialIcons name="workspace-premium" size={20} color={Colors.white} />
-              <Text style={styles.subscribeText}>프리미엄 시작하기</Text>
+              {isLoading ? (
+                <ActivityIndicator color={Colors.white} /> // 빙글빙글 아이콘
+              ) : (
+                <>
+                  <MaterialIcons name="workspace-premium" size={20} color={Colors.white} />
+                  <Text style={styles.subscribeText}>프리미엄 시작하기</Text>
+                </>
+              )}
             </TouchableOpacity>
           </>
         )}
@@ -267,7 +360,7 @@ export default function MembershipScreen({ navigation }: Props) {
           {currentPlan === 'premium' && (
             <>
               <View style={styles.menuDivider} />
-              <TouchableOpacity style={styles.menuRow} activeOpacity={0.7}>
+              <TouchableOpacity style={styles.menuRow} activeOpacity={0.7} onPress={handleCancelSubscription}>
                 <View style={styles.menuRowLeft}>
                   <MaterialIcons name="cancel" size={22} color={Colors.red500} />
                   <View style={styles.menuTextWrap}>
